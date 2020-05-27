@@ -1,0 +1,10 @@
+[package]
+name = "twin-commander"
+version = "0.1.0"
+authors = ["kivimango <balazsviktor23@gmail.com>"]
+edition = "2018"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+[dependencies]
+orbtk = "0.3.1-alpha2"
