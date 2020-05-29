@@ -4,23 +4,29 @@ use std::path::{Path, PathBuf};
 
 type FileList = Vec<DirContent>;
 
+const DIRECTORY_LIST_ID: &'static str = "directory_list";
+const CWD_LABEL_ID: &'static str = "path_label";
+
 #[derive(AsAny, Default)]
 struct DirectoryListState {
     count: usize,
     cwd: PathBuf,
-    list_view: Entity
+    list_view: Entity,
+    path_label: Entity
 }
 
 impl State for DirectoryListState {
     fn init(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
         self.cwd = self.cwd();
-        self.list_view =  ctx.entity_of_child("directory_view").unwrap();
+        self.list_view =  ctx.entity_of_child(DIRECTORY_LIST_ID).unwrap();
+        self.path_label = ctx.entity_of_child(CWD_LABEL_ID).unwrap();
 
         match list_dir(Path::new(".")) {
             Ok(result) => {
                 self.count = result.len();
-               ctx.get_widget(self.list_view).set::<usize>("count", self.count);
+                ctx.get_widget(self.list_view).set::<usize>("count", self.count);
                 ctx.widget().set::<FileList>("file_list", result);
+                ctx.get_widget(self.path_label).set::<String16>("text", String16::from(self.cwd.to_str().unwrap()));
             }
             // TODO: show popup
             Err(error) => {
@@ -60,6 +66,11 @@ impl Template for DirectoryList {
             .child(
                 Stack::create()
                     .orientation("vertical")
+                    .child(
+                        TextBlock::create()
+                            .id(CWD_LABEL_ID)
+                            .build(bc)
+                    )
                     .child(
                         Grid::create()
                             .columns(Columns::create().repeat("*", 6).build())
@@ -104,7 +115,7 @@ impl Template for DirectoryList {
                     )
                     .child(
                         ListView::create()
-                            .id("directory_view")
+                            .id(DIRECTORY_LIST_ID)
                             .element("directory_view")
                             .width(750.0)
                             .height(700.0)
@@ -154,7 +165,6 @@ impl Template for DirectoryList {
                             })
                             .count(0)
                             .build(bc)
-                        //).build(bc)
                     )
                     .build(bc)
             )
