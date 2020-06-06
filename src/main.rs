@@ -10,7 +10,7 @@ fn main() {
             Window::create()
                 .title("Twin Commander")
                 .position((100.0, 100.0))
-                .size(1920.0 * 0.75, 1080.0 * 0.75)
+                .size(1920.0 * 0.775, 1080.0 * 0.75)
                 .resizeable(true)
                 .child(
                     Stack::create()
