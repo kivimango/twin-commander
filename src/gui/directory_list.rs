@@ -194,10 +194,15 @@ impl Template for DirectoryList {
                 Stack::create()
                     .orientation("vertical")
                     .child(
-                        TextBlock::create()
-                            .id(CWD_LABEL_ID)
+                        Container::create()
+                            .class("cwd_label_container")
+                            .child(
+                                TextBlock::create()
+                                    .class("cwd_label")
+                                    .id(CWD_LABEL_ID)
+                                    .build(bc)
+                            )
                             .build(bc)
-
                     )
                     .child(
                         Grid::create()
@@ -205,36 +210,42 @@ impl Template for DirectoryList {
                             .rows(Rows::create().row("48").build())
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("Name")
                                     .attach(Grid::column(0)).attach(Grid::row(0))
                                     .build(bc)
                             )
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("Extension")
                                     .attach(Grid::column(1)).attach(Grid::row(0))
                                     .build(bc)
                             )
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("File type")
                                     .attach(Grid::column(2)).attach(Grid::row(0))
                                     .build(bc)
                             )
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("Size")
                                     .attach(Grid::column(3)).attach(Grid::row(0))
                                     .build(bc)
                             )
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("Last modified")
                                     .attach(Grid::column(4)).attach(Grid::row(0))
                                     .build(bc)
                             )
                             .child(
                                 Button::create()
+                                    .class("directory_view_column_header")
                                     .text("Attributes")
                                     .attach(Grid::column(5)).attach(Grid::row(0))
                                     .build(bc)
@@ -245,6 +256,7 @@ impl Template for DirectoryList {
                         ListView::create()
                             //.id(DIRECTORY_LIST_ID)
                             .id("list_view")
+                            .class("directory_list")
                             .width(750.0)
                             .height(700.0)
                             .items_builder(move |build_context, index| {
@@ -256,6 +268,7 @@ impl Template for DirectoryList {
                                     .rows(Rows::create().row("48").build())
                                     .child(
                                         TextBlock::create()
+                                            .element("list-view-item")
                                             .text(item.name)
                                             .attach(Grid::column(0))
                                             .attach(Grid::row(0))
@@ -263,6 +276,7 @@ impl Template for DirectoryList {
                                     )
                                     .child(
                                         TextBlock::create()
+                                            .element("list-view-item")
                                             .text(item.ext)
                                             .attach(Grid::column(1))
                                             .attach(Grid::row(0))
@@ -270,6 +284,7 @@ impl Template for DirectoryList {
                                     )
                                     .child(
                                         TextBlock::create()
+                                            .element("list-view-item")
                                             .text(item.is_dir.to_string())
                                             .attach(Grid::column(2))
                                             .attach(Grid::row(0))
@@ -277,6 +292,7 @@ impl Template for DirectoryList {
                                     )
                                     .child(
                                         TextBlock::create()
+                                            .element("list-view-item")
                                             .text(item.size)
                                             .attach(Grid::column(3))
                                             .attach(Grid::row(0))
@@ -284,13 +300,13 @@ impl Template for DirectoryList {
                                     )
                                     .child(
                                         TextBlock::create()
+                                            .element("list-view-item")
                                             .text(item.date)
                                             .attach(Grid::column(4))
                                             .attach(Grid::row(0))
                                             .build(build_context),
                                     )
                                     .build(build_context)
-
                             })
                             .count(0)
                             .build(bc)
