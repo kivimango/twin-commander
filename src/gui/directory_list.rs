@@ -1,8 +1,8 @@
 use crate::core::list_dir::{list_dir, DirContent};
-use orbtk::prelude::*;
 use orbtk::behaviors::MouseBehavior;
+use orbtk::prelude::*;
 use orbtk::shell::{Key, KeyEvent};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 type FileList = Vec<DirContent>;
 
@@ -12,7 +12,7 @@ const CWD_LABEL_ID: &'static str = "path_label";
 #[derive(Clone)]
 enum DirectoryListAction {
     Key(KeyEvent),
-    RequestFocus
+    RequestFocus,
 }
 
 #[derive(AsAny, Default)]
@@ -22,31 +22,17 @@ struct DirectoryListState {
     cwd: PathBuf,
     list_view: Entity,
     path_label: Entity,
-    selected_item_index: usize
+    selected_item_index: usize,
 }
 
 impl State for DirectoryListState {
     fn init(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
         self.cwd = self.cwd();
         // TODO: fix ListView custom-id-breaks-selection issue
-        self.list_view =  ctx.entity_of_child("list_view").unwrap();
+        self.list_view = ctx.entity_of_child("list_view").unwrap();
         self.path_label = ctx.entity_of_child(CWD_LABEL_ID).unwrap();
-
-        match list_dir(self.cwd().as_path()) {
-            Ok(result) => {
-                self.count = result.len();
-                ctx.get_widget(self.list_view).set::<usize>("count", self.count);
-                ctx.widget().set::<FileList>("file_list", result);
-                ctx.get_widget(self.path_label).set::<String16>("text", String16::from(self.cwd.to_str().unwrap()));
-            }
-            // TODO: show popup
-            Err(error) => {
-                eprintln!(
-                    "NOTICE: Error during listing of files in {:#?}, : {}",
-                    self.cwd, error
-                );
-            }
-        }
+        let cwd = self.cwd.clone();
+        self.list_dir(cwd.as_path(), ctx);
     }
 
     fn update(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
@@ -59,16 +45,22 @@ impl State for DirectoryListState {
                             if self.selected_item_count(ctx) == 1 {
                                 self.handle_up_key(ctx);
                             }
-                        },
+                        }
                         Key::Down => {
                             // move the selection only if there is one list item selected
                             if self.selected_item_count(ctx) == 1 {
                                 self.handle_down_key(ctx);
                             }
-                        },
+                        }
+                        Key::Enter => {
+                            // list dir/ open file if there is one list item selected
+                            if self.selected_item_count(ctx) == 1 {
+                                self.change_cwd(ctx);
+                            }
+                        }
                         _ => {}
                     }
-                },
+                }
                 DirectoryListAction::RequestFocus => {
                     self.request_focus(ctx);
                 }
@@ -96,6 +88,28 @@ impl DirectoryListState {
         };
     }
 
+    fn change_cwd(&mut self, ctx: &mut Context<'_>) {
+        let widget = ctx.widget();
+        let file_list = widget.get::<FileList>("file_list");
+        match file_list.get(self.selected_item_index) {
+            Some(item) => {
+                let mut new_path = PathBuf::from(&self.cwd);
+                let f_name = PathBuf::from(&item.name);
+                println!("new path: {:?}", f_name);
+                new_path.push(f_name);
+                println!("new full path: {:?}", new_path);
+                self.list_dir(new_path.as_path(), ctx);
+            }
+            None => {
+                // TODO: show popup
+                eprintln!(
+                    "NOTICE: cannot get selected item's path, index: {}",
+                    self.selected_item_index
+                );
+            }
+        }
+    }
+
     fn handle_up_key(&mut self, ctx: &mut Context<'_>) {
         if self.selected_item_index > 0 && self.selected_item_index <= self.count {
             self.move_selection(self.selected_item_index - 1, ctx);
@@ -108,6 +122,34 @@ impl DirectoryListState {
         }
     }
 
+    fn list_dir(&mut self, path: &Path, ctx: &mut Context<'_>) {
+        match list_dir(&path) {
+            // FIXME: after listing, on mouse click the app crashes due to missing "selected" property
+            Ok(result) => {
+                self.selected_item_index = 0;
+                self.cwd = PathBuf::from(path);
+                self.count = result.len();
+                ctx.get_widget(self.list_view)
+                    .set::<usize>("count", self.count);
+                ctx.widget().set::<FileList>("file_list", result);
+                ctx.get_widget(self.path_label)
+                    .set::<String16>("text", String16::from(self.cwd.to_str().unwrap()));
+                ctx.push_event_strategy_by_entity(
+                    ChangedEvent(self.list_view),
+                    self.list_view,
+                    EventStrategy::Direct,
+                );
+            }
+            // TODO: show popup
+            Err(error) => {
+                eprintln!(
+                    "NOTICE: Error during listing of files in {:#?}, : {}",
+                    self.cwd, error
+                );
+            }
+        }
+    }
+
     fn move_selection(&mut self, new_index: usize, ctx: &mut Context<'_>) {
         match ctx.entity_of_child("items_panel") {
             Some(list_items_panel) => {
@@ -115,7 +157,7 @@ impl DirectoryListState {
                 ctx.entity = list_items_panel;
                 self.deselect_current_item(ctx);
                 self.select_item(new_index, ctx);
-            },
+            }
             None => {
                 eprintln!("NOTICE: could not get list view items panel");
             }
@@ -128,7 +170,7 @@ impl DirectoryListState {
         let mut child_entity = Entity::default();
 
         if let Some(mut child) = ctx.try_child_from_index(self.selected_item_index) {
-            // probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to true
+            // FIXME: probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to true
             child.set("selected", false);
             should_add = true;
             child_entity = child.entity();
@@ -137,19 +179,21 @@ impl DirectoryListState {
         if should_add {
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedIndices>("selected_indices")
-                .0.insert(self.selected_item_index);
+                .0
+                .insert(self.selected_item_index);
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedEntities>("selected_entities")
-                .0.insert(child_entity);
+                .0
+                .insert(child_entity);
         }
     }
 
-    fn deselect_current_item(&self, ctx: &mut Context<'_> ) {
+    fn deselect_current_item(&self, ctx: &mut Context<'_>) {
         let mut should_remove = false;
-        let mut child_entity= Entity::default() ;
+        let mut child_entity = Entity::default();
 
         if let Some(mut child) = ctx.try_child_from_index(self.selected_item_index) {
-            // probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to false
+            // FIXME: probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to false
             child.set("selected", true);
             child_entity = child.entity();
             should_remove = true;
@@ -158,16 +202,20 @@ impl DirectoryListState {
         if should_remove {
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedIndices>("selected_indices")
-                .0.remove(&self.selected_item_index);
+                .0
+                .remove(&self.selected_item_index);
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedEntities>("selected_entities")
-                .0.remove(&child_entity);
+                .0
+                .remove(&child_entity);
         }
     }
 
     fn selected_item_count(&self, ctx: &mut Context<'_>) -> usize {
-       ctx.get_widget(self.list_view)
-           .get::<SelectedEntities>("selected_entities").0.len()
+        ctx.get_widget(self.list_view)
+            .get::<SelectedEntities>("selected_entities")
+            .0
+            .len()
     }
 
     fn request_focus(&self, ctx: &mut Context<'_>) {
@@ -200,9 +248,9 @@ impl Template for DirectoryList {
                                 TextBlock::create()
                                     .class("cwd_label")
                                     .id(CWD_LABEL_ID)
-                                    .build(bc)
+                                    .build(bc),
                             )
-                            .build(bc)
+                            .build(bc),
                     )
                     .child(
                         Grid::create()
@@ -212,45 +260,51 @@ impl Template for DirectoryList {
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("Name")
-                                    .attach(Grid::column(0)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(0))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
                             .child(
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("Extension")
-                                    .attach(Grid::column(1)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(1))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
                             .child(
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("File type")
-                                    .attach(Grid::column(2)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(2))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
                             .child(
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("Size")
-                                    .attach(Grid::column(3)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(3))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
                             .child(
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("Last modified")
-                                    .attach(Grid::column(4)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(4))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
                             .child(
                                 Button::create()
                                     .class("directory_view_column_header")
                                     .text("Attributes")
-                                    .attach(Grid::column(5)).attach(Grid::row(0))
-                                    .build(bc)
+                                    .attach(Grid::column(5))
+                                    .attach(Grid::row(0))
+                                    .build(bc),
                             )
-                            .build(bc)
+                            .build(bc),
                     )
                     .child(
                         ListView::create()
@@ -309,21 +363,25 @@ impl Template for DirectoryList {
                                     .build(build_context)
                             })
                             .count(0)
-                            .build(bc)
+                            .build(bc),
                     )
-                    .build(bc)
+                    .build(bc),
             )
             .on_key_down(move |states, key_event| -> bool {
-                states.get_mut::<DirectoryListState>(id).action(DirectoryListAction::Key(key_event));
+                states
+                    .get_mut::<DirectoryListState>(id)
+                    .action(DirectoryListAction::Key(key_event));
                 false
             })
             .child(
                 MouseBehavior::create()
                     .on_mouse_down(move |states, _| -> bool {
-                        states.get_mut::<DirectoryListState>(id).action(DirectoryListAction::RequestFocus);
+                        states
+                            .get_mut::<DirectoryListState>(id)
+                            .action(DirectoryListAction::RequestFocus);
                         true
                     })
-                    .build(bc)
+                    .build(bc),
             )
     }
 }
