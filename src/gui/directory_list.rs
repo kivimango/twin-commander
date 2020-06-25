@@ -22,7 +22,7 @@ struct DirectoryListState {
     cwd: PathBuf,
     list_view: Entity,
     path_label: Entity,
-    selected_item_index: usize,
+    selected_item_index: Option<usize>
 }
 
 impl State for DirectoryListState {
@@ -33,6 +33,8 @@ impl State for DirectoryListState {
         self.path_label = ctx.entity_of_child(CWD_LABEL_ID).unwrap();
         let cwd = self.cwd.clone();
         self.list_dir(cwd.as_path(), ctx);
+        self.selected_item_index = None;
+        self.request_focus(ctx);
     }
 
     fn update(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
@@ -41,16 +43,10 @@ impl State for DirectoryListState {
                 DirectoryListAction::Key(key_event) => {
                     match key_event.key {
                         Key::Up => {
-                            // move the selection only if there is one list item selected
-                            if self.selected_item_count(ctx) == 1 {
-                                self.handle_up_key(ctx);
-                            }
+                            self.handle_up_key(ctx);
                         }
                         Key::Down => {
-                            // move the selection only if there is one list item selected
-                            if self.selected_item_count(ctx) == 1 {
-                                self.handle_down_key(ctx);
-                            }
+                            self.handle_down_key(ctx);
                         }
                         Key::Enter => {
                             // list dir/ open file if there is one list item selected
@@ -89,36 +85,48 @@ impl DirectoryListState {
     }
 
     fn change_cwd(&mut self, ctx: &mut Context<'_>) {
-        let widget = ctx.widget();
-        let file_list = widget.get::<FileList>("file_list");
-        match file_list.get(self.selected_item_index) {
-            Some(item) => {
-                let mut new_path = PathBuf::from(&self.cwd);
-                let f_name = PathBuf::from(&item.name);
-                println!("new path: {:?}", f_name);
-                new_path.push(f_name);
-                println!("new full path: {:?}", new_path);
-                self.list_dir(new_path.as_path(), ctx);
-            }
-            None => {
-                // TODO: show popup
-                eprintln!(
-                    "NOTICE: cannot get selected item's path, index: {}",
-                    self.selected_item_index
-                );
+        if let Some(selected_item_index) = self.selected_item_index {
+            let widget = ctx.widget();
+            let file_list = widget.get::<FileList>("file_list");
+            match file_list.get(selected_item_index) {
+                Some(item) => {
+                    let mut new_path = PathBuf::from(&self.cwd);
+                    let f_name = PathBuf::from(&item.name);
+                    println!("new path: {:?}", f_name);
+                    new_path.push(f_name);
+                    println!("new full path: {:?}", new_path);
+                    self.list_dir(new_path.as_path(), ctx);
+                }
+                None => {
+                    // TODO: show popup
+                    eprintln!(
+                        "NOTICE: cannot get selected item's path, index: {}",
+                        selected_item_index
+                    );
+                }
             }
         }
     }
 
     fn handle_up_key(&mut self, ctx: &mut Context<'_>) {
-        if self.selected_item_index > 0 && self.selected_item_index <= self.count {
-            self.move_selection(self.selected_item_index - 1, ctx);
+        if let Some(selected_item_index) = self.selected_item_index {
+            if self.selected_item_count(ctx) == 1 &&
+                (selected_item_index > 0 && selected_item_index <= self.count) {
+                    self.move_selection(selected_item_index, selected_item_index - 1, ctx);
+            }
         }
     }
 
     fn handle_down_key(&mut self, ctx: &mut Context<'_>) {
-        if self.selected_item_index <= self.count && (self.count - 1) != self.selected_item_index {
-            self.move_selection(self.selected_item_index + 1, ctx);
+        if let Some(selected_item_index) = self.selected_item_index {
+            if self.selected_item_count(ctx) == 1 &&
+                (selected_item_index <= self.count && (self.count - 1) != selected_item_index) {
+                    self.move_selection(selected_item_index, selected_item_index + 1, ctx);
+            }
+        } else {
+            // no selected item, selecting the first item
+            ctx.entity = ctx.entity_of_child("items_panel").unwrap();
+            self.select_item(0, ctx);
         }
     }
 
@@ -126,7 +134,7 @@ impl DirectoryListState {
         match list_dir(&path) {
             // FIXME: after listing, on mouse click the app crashes due to missing "selected" property
             Ok(result) => {
-                self.selected_item_index = 0;
+                self.selected_item_index = None;
                 self.cwd = PathBuf::from(path);
                 self.count = result.len();
                 ctx.get_widget(self.list_view)
@@ -150,12 +158,12 @@ impl DirectoryListState {
         }
     }
 
-    fn move_selection(&mut self, new_index: usize, ctx: &mut Context<'_>) {
+    fn move_selection(&mut self, old_index: usize, new_index: usize, ctx: &mut Context<'_>) {
         match ctx.entity_of_child("items_panel") {
             Some(list_items_panel) => {
                 // changing the current context into ListView's items_panel
                 ctx.entity = list_items_panel;
-                self.deselect_current_item(ctx);
+                self.deselect_current_item(old_index, ctx);
                 self.select_item(new_index, ctx);
             }
             None => {
@@ -165,11 +173,11 @@ impl DirectoryListState {
     }
 
     fn select_item(&mut self, new_index: usize, ctx: &mut Context<'_>) {
-        self.selected_item_index = new_index;
+        self.selected_item_index = Some(new_index);
         let mut should_add = false;
         let mut child_entity = Entity::default();
 
-        if let Some(mut child) = ctx.try_child_from_index(self.selected_item_index) {
+        if let Some(mut child) = ctx.try_child_from_index(new_index) {
             // FIXME: probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to true
             child.set("selected", false);
             should_add = true;
@@ -180,7 +188,7 @@ impl DirectoryListState {
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedIndices>("selected_indices")
                 .0
-                .insert(self.selected_item_index);
+                .insert(new_index);
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedEntities>("selected_entities")
                 .0
@@ -188,11 +196,11 @@ impl DirectoryListState {
         }
     }
 
-    fn deselect_current_item(&self, ctx: &mut Context<'_>) {
+    fn deselect_current_item(&self, old_index: usize, ctx: &mut Context<'_>) {
         let mut should_remove = false;
         let mut child_entity = Entity::default();
 
-        if let Some(mut child) = ctx.try_child_from_index(self.selected_item_index) {
+        if let Some(mut child) = ctx.try_child_from_index(old_index) {
             // FIXME: probably a bug in orbtk's ListViewItemState's update_post_layout, should be set to false
             child.set("selected", true);
             child_entity = child.entity();
@@ -203,7 +211,7 @@ impl DirectoryListState {
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedIndices>("selected_indices")
                 .0
-                .remove(&self.selected_item_index);
+                .remove(&old_index);
             ctx.get_widget(self.list_view)
                 .get_mut::<SelectedEntities>("selected_entities")
                 .0
