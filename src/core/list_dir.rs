@@ -3,7 +3,7 @@ use std::io::Error;
 use std::path::Path;
 
 /// A structure representing one file with its metadata collected from listing files in a directory
-#[derive(Debug, Clone)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct DirContent {
     pub name: String,
     pub ext: String,
@@ -59,7 +59,7 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             if !metadata.is_dir() {
                 is_dir = false;
                 ext = String::from(extension(f_name.as_str()));
-                size =metadata.len().to_string();
+                size = metadata.len().to_string();
             }
 
             let date = match metadata.modified() {

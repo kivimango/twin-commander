@@ -1,13 +1,13 @@
 use crate::core::list_dir::{list_dir, DirContent};
-use orbtk::behaviors::MouseBehavior;
+use orbtk::widgets::behaviors::MouseBehavior;
 use orbtk::prelude::*;
-use orbtk::shell::{Key, KeyEvent};
+use orbtk::shell::event::{Key, KeyEvent};
 use std::path::{Path, PathBuf};
 
 type FileList = Vec<DirContent>;
 
-//const DIRECTORY_LIST_ID: &'static str = "directory_list";
-const CWD_LABEL_ID: &'static str = "path_label";
+const ID_LIST_VIEW: &'static str = "list_view";
+const ID_CWD_LABEL: &'static str = "path_label";
 
 #[derive(Clone)]
 enum DirectoryListAction {
@@ -20,21 +20,23 @@ struct DirectoryListState {
     action: Option<DirectoryListAction>,
     count: usize,
     cwd: PathBuf,
+    event_adapter: EventAdapter,
     list_view: Entity,
     path_label: Entity,
-    selected_item_index: Option<usize>
+    selected_item_index: Option<usize>,
 }
 
 impl State for DirectoryListState {
-    fn init(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
+    fn init(&mut self, _registry: &mut Registry, ctx: &mut Context<'_>) {
         self.cwd = self.cwd();
         // TODO: fix ListView custom-id-breaks-selection issue
-        self.list_view = ctx.entity_of_child("list_view").unwrap();
-        self.path_label = ctx.entity_of_child(CWD_LABEL_ID).unwrap();
+        self.list_view = ctx.entity_of_child(ID_LIST_VIEW).unwrap();
+        self.path_label = ctx.entity_of_child(ID_CWD_LABEL).unwrap();
         let cwd = self.cwd.clone();
         self.list_dir(cwd.as_path(), ctx);
         self.selected_item_index = None;
         self.request_focus(ctx);
+        self.event_adapter = ctx.event_adapter();
     }
 
     fn update(&mut self, _: &mut Registry, ctx: &mut Context<'_>) {
@@ -125,7 +127,8 @@ impl DirectoryListState {
             }
         } else {
             // no selected item, selecting the first item
-            ctx.entity = ctx.entity_of_child("items_panel").unwrap();
+            //ctx.entity = ctx.entity_of_child("items_panel").unwrap();
+            let entity_items_panel = ctx.entity_of_child("items_panel").unwrap();
             self.select_item(0, ctx);
         }
     }
@@ -143,7 +146,8 @@ impl DirectoryListState {
                 ctx.get_widget(self.path_label)
                     .set::<String16>("text", String16::from(self.cwd.to_str().unwrap()));
                 ctx.push_event_strategy_by_entity(
-                    ChangedEvent(self.list_view),
+                    //pub struct ChangedEvent(pub Entity, pub String);
+                    ChangedEvent(self.list_view, self.cwd),
                     self.list_view,
                     EventStrategy::Direct,
                 );
@@ -226,6 +230,7 @@ impl DirectoryListState {
             .len()
     }
 
+    // TODO: migrate to use EventAdapter
     fn request_focus(&self, ctx: &mut Context<'_>) {
         if !ctx.widget().get::<bool>("focused") {
             ctx.widget().set::<bool>("focused", true);
@@ -244,125 +249,125 @@ widget!(DirectoryList<DirectoryListState>: MouseHandler, KeyDownHandler {
 });
 
 impl Template for DirectoryList {
-    fn template(self, id: Entity, bc: &mut BuildContext) -> Self {
+    fn template(self, id: Entity, ctx: &mut BuildContext) -> Self {
         self.name("DirectoryList")
             .child(
-                Stack::create()
+                Stack::new()
                     .orientation("vertical")
                     .child(
-                        Container::create()
-                            .class("cwd_label_container")
+                        Container::new()
+                            .style("cwd_label_container")
                             .child(
-                                TextBlock::create()
-                                    .class("cwd_label")
-                                    .id(CWD_LABEL_ID)
-                                    .build(bc),
+                                TextBlock::new()
+                                    .style("cwd_label")
+                                    .id(ID_CWD_LABEL)
+                                    .build(ctx),
                             )
-                            .build(bc),
+                            .build(ctx),
                     )
                     .child(
-                        Grid::create()
+                        Grid::new()
                             .columns(Columns::create().repeat("*", 6).build())
-                            .rows(Rows::create().row("48").build())
+                            .rows(Rows::create().push("48").build())
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("Name")
                                     .attach(Grid::column(0))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("Extension")
                                     .attach(Grid::column(1))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("File type")
                                     .attach(Grid::column(2))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("Size")
                                     .attach(Grid::column(3))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("Last modified")
                                     .attach(Grid::column(4))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
                             .child(
-                                Button::create()
-                                    .class("directory_view_column_header")
+                                Button::new()
+                                    .style("directory_view_column_header")
                                     .text("Attributes")
                                     .attach(Grid::column(5))
                                     .attach(Grid::row(0))
-                                    .build(bc),
+                                    .build(ctx),
                             )
-                            .build(bc),
+                            .build(ctx),
                     )
                     .child(
-                        ListView::create()
-                            //.id(DIRECTORY_LIST_ID)
-                            .id("list_view")
-                            .class("directory_list")
+                        ListView::new()
+                            //.id("list_view")
+                            .id(ID_LIST_VIEW)
+                            .style("directory_list")
                             .width(750.0)
                             .height(700.0)
                             .items_builder(move |build_context, index| {
                                 let ll = build_context.get_widget(id);
                                 let item = ll.get::<FileList>("file_list")[index].clone();
 
-                                Grid::create()
+                                Grid::new()
                                     .columns(Columns::create().repeat("*", 6).build())
-                                    .rows(Rows::create().row("48").build())
+                                    .rows(Rows::create().push("48").build())
                                     .child(
-                                        TextBlock::create()
-                                            .element("list-view-item")
+                                        TextBlock::new()
+                                            //.element("list-view-item")
                                             .text(item.name)
                                             .attach(Grid::column(0))
                                             .attach(Grid::row(0))
                                             .build(build_context),
                                     )
                                     .child(
-                                        TextBlock::create()
-                                            .element("list-view-item")
+                                        TextBlock::new()
+                                            //.element("list-view-item")
                                             .text(item.ext)
                                             .attach(Grid::column(1))
                                             .attach(Grid::row(0))
                                             .build(build_context),
                                     )
                                     .child(
-                                        TextBlock::create()
-                                            .element("list-view-item")
+                                        TextBlock::new()
+                                            //.element("list-view-item")
                                             .text(item.is_dir.to_string())
                                             .attach(Grid::column(2))
                                             .attach(Grid::row(0))
                                             .build(build_context),
                                     )
                                     .child(
-                                        TextBlock::create()
-                                            .element("list-view-item")
+                                        TextBlock::new()
+                                            //.element("list-view-item")
                                             .text(item.size)
                                             .attach(Grid::column(3))
                                             .attach(Grid::row(0))
                                             .build(build_context),
                                     )
                                     .child(
-                                        TextBlock::create()
-                                            .element("list-view-item")
+                                        TextBlock::new()
+                                            //.element("list-view-item")
                                             .text(item.date)
                                             .attach(Grid::column(4))
                                             .attach(Grid::row(0))
@@ -371,9 +376,9 @@ impl Template for DirectoryList {
                                     .build(build_context)
                             })
                             .count(0)
-                            .build(bc),
+                            .build(ctx),
                     )
-                    .build(bc),
+                    .build(ctx),
             )
             .on_key_down(move |states, key_event| -> bool {
                 states
@@ -382,14 +387,14 @@ impl Template for DirectoryList {
                 false
             })
             .child(
-                MouseBehavior::create()
+                MouseBehavior::new()
                     .on_mouse_down(move |states, _| -> bool {
                         states
                             .get_mut::<DirectoryListState>(id)
                             .action(DirectoryListAction::RequestFocus);
                         true
                     })
-                    .build(bc),
+                    .build(ctx),
             )
     }
 }
