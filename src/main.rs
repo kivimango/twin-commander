@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut should_quit = false;
 
     let menu = Menu::new();
-    let table_view = TableView::new();
+    let mut table_view = TableView::new();
 
     loop {
         if should_quit {
@@ -46,11 +46,12 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         if let Ok(event) = events.next() {
             match event {
-                Event::Input(key) => {
-                    if key == Key::Esc {
-                        should_quit = true;
-                    }
-                }
+                Event::Input(key) => match key {
+                    Key::Esc => should_quit = true,
+                    Key::Up => table_view.select_previous(),
+                    Key::Down => table_view.select_next(),
+                    _ => {}
+                },
                 Event::Tick => {}
             }
         }

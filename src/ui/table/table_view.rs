@@ -24,7 +24,7 @@ impl TableView {
     }
 
     pub fn render_table(
-        &self,
+        &mut self,
         main_layout: Rect,
         frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
     ) {
@@ -37,8 +37,10 @@ impl TableView {
         let table_header = Row::new(header_cells).height(1);
         let mut rowssw = Vec::new();
 
-        if let Ok(rows) = self.model.list() {
-            let rowss = rows
+        if let Ok(_) = self.model.list() {
+            let rowss = self
+                .model
+                .files()
                 .iter()
                 .map(|row| {
                     Row::new(vec![
@@ -52,12 +54,11 @@ impl TableView {
             rowssw = rowss;
         }
 
+        let selected_style = Style::default().fg(Color::Black).bg(Color::Red);
+        let cwd = String::from(self.model.pwd().to_str().unwrap());
+
         let left_table = Table::new(rowssw)
-            .block(
-                Block::default()
-                    .title(self.model.pwd().to_str().unwrap())
-                    .borders(Borders::ALL),
-            )
+            .block(Block::default().title(cwd).borders(Borders::ALL))
             .widths(&[
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
@@ -65,11 +66,22 @@ impl TableView {
                 Constraint::Percentage(25),
             ])
             .header(table_header)
+            .highlight_style(selected_style)
             .style(Style::default().bg(Color::LightBlue).fg(Color::White))
             .column_spacing(0);
         let right_table = left_table.clone();
 
-        frame.render_widget(left_table, twin_table_layout[0]);
+        frame.render_stateful_widget(left_table, twin_table_layout[0], self.model.state_mut());
         frame.render_widget(right_table, twin_table_layout[1]);
+    }
+
+    pub fn select_previous(&mut self) {
+        //println!("selecting prev");
+        self.model.select_previous();
+    }
+
+    pub fn select_next(&mut self) {
+        //println!("selecting next");
+        self.model.select_next();
     }
 }
