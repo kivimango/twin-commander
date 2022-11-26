@@ -1,5 +1,5 @@
-use std::{sync::mpsc, thread, io};
-use termion::{event::{Key}, input::TermRead};
+use std::{io, sync::mpsc, thread};
+use termion::{event::Key, input::TermRead};
 
 /// Represents an event consumed by the application.
 /// Event source is the termion backend.
@@ -9,7 +9,7 @@ pub enum Event<I> {
     /// A tick event.
     /// Event source sends ticks events perodically to the application.
     /// Tick events signals the application to refresh data and redraw the user interface with the new data.
-    Tick
+    Tick,
 }
 
 /// Listent for key presses on the terminal,
@@ -43,10 +43,7 @@ impl Events {
                 event_tx.send(Event::Tick).unwrap();
             }
         });
-        Events {
-            rx,
-            _tx: tx
-        }
+        Events { rx, _tx: tx }
     }
 
     /// Attempts to read an event from the channel in a blocking way.
