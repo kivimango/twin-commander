@@ -1,36 +1,63 @@
-use gui::directory_list::DirectoryList;
-use orbtk::prelude::*;
+use ::termion::raw::IntoRawMode;
+use event::{Event, Events};
+use std::{error::Error, io::stdout};
+use termion::event::Key;
+use tui::{
+    backend::TermionBackend,
+    layout::{Constraint, Layout},
+    Terminal,
+};
+use ui::{Menu, TableView};
 
-mod gui;
 mod core;
+mod event;
+mod ui;
 
-static DEFAULT_THEME: &'static str = include_str!("../res/theme/default.css");
+fn main() -> Result<(), Box<dyn Error>> {
+    // Initializing terminal with termion backend
+    let stdout = stdout().into_raw_mode()?;
+    let backend = TermionBackend::new(stdout);
+    let mut terminal = Terminal::new(backend)?;
+    terminal.clear()?;
+    terminal.hide_cursor()?;
 
-fn get_theme() -> ThemeValue {
-    ThemeValue::create()
-        .extension_css(theme::DEFAULT_THEME_CSS)
-        .extension_css(DEFAULT_THEME)
-        .build()
-}
+    let events = Events::new();
+    let mut should_quit = false;
 
-fn main() {
-    Application::new()
-        .window(|context| {
-            Window::create()
-                .title("Twin Commander")
-                .position((100.0, 100.0))
-                .size(1920.0 * 0.775, 1080.0 * 0.75)
-                .resizeable(true)
-                .theme(get_theme())
-                .child(
-                    Stack::create()
-                        .orientation("horizontal")
-                        .spacing(1.0)
-                        .child(DirectoryList::create().build(context))
-                        .child(DirectoryList::create().build(context))
-                        .build(context),
-                )
-                .build(context)
-        })
-        .run();
+    let menu = Menu::new();
+    let table_view = TableView::new();
+
+    loop {
+        if should_quit {
+            break;
+        }
+
+        terminal.draw(|frame| {
+            let frame_size = frame.size();
+
+            let layout = Layout::default()
+                .constraints([Constraint::Min(1), Constraint::Percentage(99)])
+                .direction(tui::layout::Direction::Vertical)
+                .split(frame_size);
+
+            menu.render(layout[0], frame);
+            table_view.render_table(layout[1], frame);
+        })?;
+
+        if let Ok(event) = events.next() {
+            match event {
+                Event::Input(key) => {
+                    if key == Key::Esc {
+                        should_quit = true;
+                    }
+                }
+                Event::Tick => {}
+            }
+        }
+    }
+
+    // Restore the terminal and close application
+    terminal.clear()?;
+    terminal.show_cursor()?;
+    Ok(())
 }
