@@ -32,10 +32,10 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
                 is_dir: true,
                 size: String::new(),
                 date: String::new(),
-                attrs: String::new()
+                attrs: String::new(),
             };
             result.push(parent);
-        },
+        }
         None => {}
     }
 
@@ -59,17 +59,19 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             if !metadata.is_dir() {
                 is_dir = false;
                 ext = String::from(extension(f_name.as_str()));
-                size =metadata.len().to_string();
+                size = metadata.len().to_string();
             }
 
             let date = match metadata.modified() {
                 // TODO: modified.to_string()
                 Ok(_modified) => "Date".to_string(),
                 Err(e) => {
-                    eprintln!("NOTICE: cannot read last modification date for {}, error: {}",
-                              &f_name, e);
+                    eprintln!(
+                        "NOTICE: cannot read last modification date for {}, error: {}",
+                        &f_name, e
+                    );
                     "N/A".to_string()
-                },
+                }
             };
 
             let attrs = "".to_string();
