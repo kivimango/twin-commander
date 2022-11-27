@@ -22,23 +22,6 @@ pub struct DirContent {
 pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
     let mut result: Vec<DirContent> = Vec::new();
 
-    // if path is not a root, add the parent of the path as a first item to allow the user navigate
-    // up in th tree
-    /*match dir.parent() {
-        Some(parent) => {
-            let parent = DirContent {
-                name: "..".to_string(),
-                ext: String::new(),
-                is_dir: true,
-                size: String::new(),
-                date: String::new(),
-                attrs: String::new(),
-            };
-            result.push(parent);
-        }
-        None => {}
-    }*/
-
     for entry in fs::read_dir(dir)? {
         let dir = entry?;
         let metadata = dir.metadata()?;
