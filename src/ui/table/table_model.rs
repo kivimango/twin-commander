@@ -35,22 +35,13 @@ impl TableViewModel {
         &self.files
     }
 
+    pub(crate) fn files_mut(&mut self) -> &mut Vec<DirContent> {
+        &mut self.files
+    }
+
     pub(crate) fn list(&mut self) -> Result<(), Error> {
         match list_dir(&self.cwd) {
-            Ok(mut files) => {
-                // if the dir is not the root, add an .. entry to the result into the first place,
-                // to able to go back up one level
-                if let Some(_parent) = self.cwd.parent() {
-                    let parent = DirContent {
-                        name: String::from(".."),
-                        ext: String::new(),
-                        size: String::from("<DIR>"),
-                        is_dir: true,
-                        date: String::from("Date"),
-                        attrs: String::new(),
-                    };
-                    files.insert(0, parent);
-                }
+            Ok(files) => {
                 self.files = files;
                 return Ok(());
             }
@@ -68,6 +59,24 @@ impl TableViewModel {
 
     pub(crate) fn pwd(&self) -> &Path {
         self.cwd.as_path()
+    }
+
+    /// Pushes an entry to the front (index of 0) of the self.files vector with the name of ".."
+    /// to let the user navigate back to the parent directory of self.cwd.
+    /// This method should be called after the self.cwd contents listed
+    /// with self.list() and after list sorted with sort().
+    pub(crate) fn push_parent_front(&mut self) {
+        if let Some(_parent) = self.cwd.parent() {
+            let parent = DirContent {
+                name: String::from(".."),
+                ext: String::new(),
+                size: String::from("<DIR>"),
+                is_dir: true,
+                date: String::from("Date"),
+                attrs: String::new(),
+            };
+            self.files.insert(0, parent);
+        }
     }
 
     pub(crate) fn set_cwd(&mut self, new_cwd: PathBuf) {
