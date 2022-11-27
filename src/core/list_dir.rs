@@ -24,7 +24,7 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
 
     // if path is not a root, add the parent of the path as a first item to allow the user navigate
     // up in th tree
-    match dir.parent() {
+    /*match dir.parent() {
         Some(parent) => {
             let parent = DirContent {
                 name: "..".to_string(),
@@ -37,7 +37,7 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             result.push(parent);
         }
         None => {}
-    }
+    }*/
 
     for entry in fs::read_dir(dir)? {
         let dir = entry?;
