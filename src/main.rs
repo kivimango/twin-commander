@@ -50,6 +50,7 @@ fn main() -> Result<(), Box<dyn Error>> {
                     Key::Esc => should_quit = true,
                     Key::Up => table_view.select_previous(),
                     Key::Down => table_view.select_next(),
+                    Key::Char('\n') => table_view.change_dir(),
                     _ => {}
                 },
                 Event::Tick => {}

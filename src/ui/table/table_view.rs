@@ -1,5 +1,5 @@
 use super::table_model::TableViewModel;
-use std::io::Stdout;
+use std::{io::Stdout, path::PathBuf};
 use termion::raw::RawTerminal;
 use tui::{
     backend::TermionBackend,
@@ -20,6 +20,30 @@ impl TableView {
     pub fn new() -> Self {
         TableView {
             model: TableViewModel::new(),
+        }
+    }
+
+    pub fn change_dir(&mut self) {
+        if let Some(selected) = self.model.selected() {
+            self.model.reset_selection();
+            // go back up
+            if selected == 0 {
+                // if cwd is not the root dir
+                if let Some(parent) = self.model.pwd().parent() {
+                    self.model.set_cwd(parent.to_path_buf());
+                    let _ = self.model.list();
+                }
+            }
+            // change into the selected dir
+            else {
+                if let Some(file) = self.model.get_file(selected) {
+                    let mut new_path = PathBuf::from(&self.model.pwd());
+                    let dir_name = PathBuf::from(&file.name);
+                    new_path.push(dir_name);
+                    self.model.set_cwd(new_path);
+                    let _ = self.model.list();
+                }
+            }
         }
     }
 
@@ -76,12 +100,10 @@ impl TableView {
     }
 
     pub fn select_previous(&mut self) {
-        //println!("selecting prev");
         self.model.select_previous();
     }
 
     pub fn select_next(&mut self) {
-        //println!("selecting next");
         self.model.select_next();
     }
 }
