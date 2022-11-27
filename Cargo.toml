@@ -9,3 +9,19 @@ edition = "2018"
 [dependencies]
 termion = "*"
 tui = { version = "0.19", features = ["termion"], default-features = false}
+
+
+[profile.release]
+# Automatically strip symbols from the binary.
+# By default on Linux and macOS, symbol information is included in the compiled .elf file.
+# This information is not needed to properly execute the binary.
+strip = true
+# By default, Cargo instructs compilation units to be compiled and optimized in isolation.
+# LTO instructs the linker to optimize at the link stage.
+# This can, for example, remove dead code and often times reduces binary size.
+lto = true
+# By default, Cargo specifies 16 parallel codegen units for release builds.
+# This improves compile times, but prevents some optimizations.
+# Here, we are exchanging smaller binary for an increased (one-time) compile time.
+codegen-units = 1
+# TODO: build with build-std, see https://github.com/johnthagen/min-sized-rust#optimize-libstd-with-build-std
