@@ -1,4 +1,4 @@
-use super::table_model::TableViewModel;
+use super::{sort, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
 use std::{io::Stdout, path::PathBuf};
 use termion::raw::RawTerminal;
 use tui::{
@@ -14,21 +14,25 @@ const CELL_HEADERS: [&str; 4] = ["Name", "Type", "Size", "Last modified"];
 /// Displays a directory's content with details in a table format.
 pub struct TableView {
     model: TableViewModel,
+    sort_direction: TableSortDirection,
+    sort_predicate: TableSortPredicate,
 }
 
 impl TableView {
     pub fn new() -> Self {
         TableView {
             model: TableViewModel::new(),
+            sort_direction: TableSortDirection::default(),
+            sort_predicate: TableSortPredicate::default(),
         }
     }
 
     pub fn change_dir(&mut self) {
         if let Some(selected) = self.model.selected() {
             self.model.reset_selection();
-            // go back up
+            // the selected item is the parent of the cwd, go back up
             if selected == 0 {
-                // if cwd is not the root dir
+                // the cwd is not the root dir
                 if let Some(parent) = self.model.pwd().parent() {
                     self.model.set_cwd(parent.to_path_buf());
                     let _ = self.model.list();
@@ -44,6 +48,8 @@ impl TableView {
                     let _ = self.model.list();
                 }
             }
+            self.sort();
+            self.model.push_parent_front();
         }
     }
 
@@ -62,6 +68,9 @@ impl TableView {
         let mut rowssw = Vec::new();
 
         if let Ok(_) = self.model.list() {
+            self.sort();
+            self.model.push_parent_front();
+
             let rowss = self
                 .model
                 .files()
@@ -105,5 +114,17 @@ impl TableView {
 
     pub fn select_next(&mut self) {
         self.model.select_next();
+    }
+
+    pub fn sort(&mut self) {
+        sort(
+            self.sort_direction,
+            self.sort_predicate,
+            self.model.files_mut(),
+        );
+    }
+
+    pub fn set_sort_by(&mut self, direction: TableSortDirection) {
+        self.sort_direction = direction;
     }
 }
