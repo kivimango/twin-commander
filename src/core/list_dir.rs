@@ -1,6 +1,7 @@
 use std::fs;
 use std::io::Error;
 use std::path::Path;
+use chrono::{DateTime, Local};
 
 /// A structure representing one file with its metadata collected from listing files in a directory
 #[derive(Debug, Clone)]
@@ -43,8 +44,11 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             }
 
             let date = match metadata.modified() {
-                // TODO: modified.to_string()
-                Ok(_modified) => "Date".to_string(),
+                Ok(modified) => {
+                    let datetime_local: DateTime<Local> = modified.into();
+                    let dt_formatted = datetime_local.format("%Y.%m.%d %H:%M");
+                    dt_formatted.to_string()
+                }
                 Err(e) => {
                     eprintln!(
                         "NOTICE: cannot read last modification date for {}, error: {}",
