@@ -107,9 +107,19 @@ impl TableView {
     }
 
     pub fn select_first(&mut self) {
-        if self.model.files().is_empty() { return };
-        
+        if self.model.files().is_empty() {
+            return;
+        };
+
         self.model.select(0);
+    }
+
+    pub fn select_last(&mut self) {
+        if self.model.files().is_empty() {
+            return;
+        };
+
+        self.model.select(self.model.files().len() - 1);
     }
 
     pub fn select_previous(&mut self) {
