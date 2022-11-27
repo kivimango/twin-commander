@@ -48,6 +48,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             match event {
                 Event::Input(key) => match key {
                     Key::Esc => should_quit = true,
+                    Key::Home => table_view.select_first(),
                     Key::Up => table_view.select_previous(),
                     Key::Down => table_view.select_next(),
                     Key::Char('\n') => table_view.change_dir(),

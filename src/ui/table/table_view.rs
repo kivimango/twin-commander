@@ -106,6 +106,12 @@ impl TableView {
         frame.render_widget(right_table, twin_table_layout[1]);
     }
 
+    pub fn select_first(&mut self) {
+        if self.model.files().is_empty() { return };
+        
+        self.model.select(0);
+    }
+
     pub fn select_previous(&mut self) {
         self.model.select_previous();
     }

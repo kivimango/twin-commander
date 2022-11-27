@@ -82,6 +82,12 @@ impl TableViewModel {
         self.cwd = new_cwd;
     }
 
+    pub(crate) fn select(&mut self, index: usize) {
+        if let Some(_) = self.files.get(index) {
+            self.state.select(Some(index));
+        }
+    }
+
     pub(crate) fn selected(&self) -> Option<usize> {
         self.state.selected()
     }
