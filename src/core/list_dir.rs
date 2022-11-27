@@ -6,7 +6,6 @@ use std::path::Path;
 #[derive(Debug, Clone)]
 pub struct DirContent {
     pub name: String,
-    pub ext: String,
     pub is_dir: bool,
     pub size: String,
     pub date: String,
@@ -26,7 +25,7 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
         let dir = entry?;
         let metadata = dir.metadata()?;
 
-        let (name, ext, is_dir, size, date, attrs) = {
+        let (name, is_dir, size, date, attrs) = {
             let f_name = match dir.file_name().into_string() {
                 Ok(name) => name,
                 Err(e) => {
@@ -36,12 +35,10 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             };
 
             let mut is_dir = true;
-            let mut ext = String::new();
             let mut size = String::from("<DIR>");
 
             if !metadata.is_dir() {
                 is_dir = false;
-                ext = String::from(extension(f_name.as_str()));
                 size = metadata.len().to_string();
             }
 
@@ -59,12 +56,11 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
 
             let attrs = "".to_string();
 
-            (f_name, ext, is_dir, size, date, attrs)
+            (f_name, is_dir, size, date, attrs)
         };
 
         let file_details = DirContent {
             name,
-            ext,
             is_dir,
             size,
             date,
@@ -74,13 +70,4 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
     }
 
     return Ok(result);
-}
-
-/// Returns the extension of a file or "N/A" if the filename does not contain a period.
-pub fn extension(filename: &str) -> &str {
-    filename
-        .rfind('.')
-        .map(|idx| &filename[idx..])
-        .filter(|ext| ext.chars().skip(1).all(|c| c.is_ascii_alphanumeric()))
-        .unwrap_or("N/A")
 }

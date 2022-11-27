@@ -9,7 +9,7 @@ use tui::{
     Frame,
 };
 
-const CELL_HEADERS: [&str; 4] = ["Name", "Type", "Size", "Last modified"];
+const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
 
 /// Displays a directory's content with details in a table format.
 pub struct TableView {
@@ -78,7 +78,6 @@ impl TableView {
                 .map(|row| {
                     Row::new(vec![
                         Cell::from(row.name.clone()),
-                        Cell::from(row.ext.clone()),
                         Cell::from(row.size.clone()),
                         Cell::from(row.date.clone()),
                     ])
@@ -93,8 +92,7 @@ impl TableView {
         let left_table = Table::new(rowssw)
             .block(Block::default().title(cwd).borders(Borders::ALL))
             .widths(&[
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
+                Constraint::Percentage(50),
                 Constraint::Percentage(25),
                 Constraint::Percentage(25),
             ])

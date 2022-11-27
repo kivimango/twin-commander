@@ -169,7 +169,6 @@ mod test {
         let mut files = Vec::new();
         files.push(DirContent {
             name: String::from("Beta"),
-            ext: String::new(),
             is_dir: true,
             size: String::from("<DIR>"),
             date: String::from("2022.11.24 12:04:02"),
@@ -177,7 +176,6 @@ mod test {
         });
         files.push(DirContent {
             name: String::from("Omega"),
-            ext: String::new(),
             is_dir: true,
             size: String::from("<DIR>"),
             date: String::from("2022.11.25 13:05:03"),
@@ -185,7 +183,6 @@ mod test {
         });
         files.push(DirContent {
             name: String::from("Alpha"),
-            ext: String::new(),
             is_dir: true,
             size: String::from("<DIR>"),
             date: String::from("2022.11.23 11:03:01"),
@@ -193,7 +190,6 @@ mod test {
         });
         files.push(DirContent {
             name: String::from("test.txt"),
-            ext: String::new(),
             is_dir: false,
             size: String::from("816"),
             date: String::from("2022.11.26 14:06:04"),
@@ -201,7 +197,6 @@ mod test {
         });
         files.push(DirContent {
             name: String::from("a.out"),
-            ext: String::new(),
             is_dir: false,
             size: String::from("8467"),
             date: String::from("2022.11.27 15:07:05"),
