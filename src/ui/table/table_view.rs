@@ -1,11 +1,13 @@
-use super::{sort, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
+use super::{
+    centered_rect, sort, table_model::TableViewModel, TableSortDirection, TableSortPredicate,
+};
 use std::{io::Stdout, path::PathBuf};
 use termion::raw::RawTerminal;
 use tui::{
     backend::TermionBackend,
-    layout::{Constraint, Layout, Rect},
+    layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Row, Table},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Widget, Wrap},
     Frame,
 };
 
@@ -83,23 +85,29 @@ impl TableView {
         let header_cells = CELL_HEADERS.iter().map(|header| Cell::from(*header));
         let table_header = Row::new(header_cells).height(1);
         let mut rows = Vec::new();
+        let mut error = None;
 
-        if let Ok(_) = self.model.list() {
-            self.sort();
-            self.model.push_parent_front();
+        match self.model.list() {
+            Ok(_) => {
+                self.sort();
+                self.model.push_parent_front();
 
-            rows = self
-                .model
-                .files()
-                .iter()
-                .map(|row| {
-                    Row::new(vec![
-                        Cell::from(row.name.clone()),
-                        Cell::from(row.size.clone()),
-                        Cell::from(row.date.clone()),
-                    ])
-                })
-                .collect::<Vec<Row>>();
+                rows = self
+                    .model
+                    .files()
+                    .iter()
+                    .map(|row| {
+                        Row::new(vec![
+                            Cell::from(row.name.clone()),
+                            Cell::from(row.size.clone()),
+                            Cell::from(row.date.clone()),
+                        ])
+                    })
+                    .collect::<Vec<Row>>();
+            }
+            Err(err) => {
+                error = Some(err);
+            }
         }
 
         let selected_style = match self.is_active {
@@ -128,6 +136,22 @@ impl TableView {
             twin_table_layout[panel_idx],
             self.model.state_mut(),
         );
+
+        if let Some(error) = error {
+            let popup = Paragraph::new(error.to_string())
+                .block(
+                    Block::default()
+                        .title("Error")
+                        .borders(Borders::ALL)
+                        .style(Style::default().bg(Color::LightRed).fg(Color::White)),
+                )
+                .wrap(Wrap { trim: false})
+                .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
+                .alignment(Alignment::Center);
+            let area = centered_rect(50, 25, twin_table_layout[panel_idx]);
+            frame.render_widget(Clear, area);
+            frame.render_widget(popup, area);
+        }
     }
 
     pub fn select_first(&mut self) {
