@@ -1,5 +1,12 @@
-use std::{io, sync::mpsc, thread};
+use std::{
+    io,
+    sync::mpsc::{self, Receiver},
+    thread,
+    time::Duration,
+};
 use termion::{event::Key, input::TermRead};
+
+pub const DEFAULT_TICK_RATE: u64 = 250;
 
 /// Represents an event consumed by the application.
 /// Event source is the termion backend.
@@ -22,32 +29,38 @@ pub struct Events {
 impl Events {
     /// Creates a new Events instance that listens to key presses on a separate thread.
     /// It sends events through a channel back to the main thread for processing.
-    pub fn new() -> Self {
+    pub fn new(tr: Option<u64>) -> Receiver<Event<Key>> {
+        let tick_rate = match tr {
+            Some(tick_rate) => Duration::from_millis(tick_rate),
+            None => Duration::from_millis(DEFAULT_TICK_RATE),
+        };
+
         let (tx, rx) = mpsc::channel();
         let event_tx = tx.clone();
 
         thread::spawn(move || {
-            //maybe use termion::async_stdin() ?
             let stdin = io::stdin();
-            let mut keys = stdin.keys();
 
-            loop {
-                let key_event = keys.next();
-
-                if let Some(key_event) = key_event {
-                    if let Ok(key) = key_event {
-                        event_tx.send(Event::Input(key)).unwrap();
-                    }
+            for key in stdin.keys().flatten() {
+                if let Err(error) = tx.send(Event::Input(key)) {
+                    // TODO: proper logging
+                    eprintln!("Error during sending a key press event: {}", error);
+                    return;
                 }
-
-                event_tx.send(Event::Tick).unwrap();
             }
         });
-        Events { rx, _tx: tx }
+        thread::spawn(move || loop {
+            if let Err(error) = event_tx.send(Event::Tick) {
+                eprintln!("Error during sending a tick event: {}", error);
+                break;
+            }
+            thread::sleep(tick_rate);
+        });
+        rx
     }
 
-    /// Attempts to read an event from the channel in a blocking way.
+    /*/// Attempts to read an event from the channel in a blocking way.
     pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
         self.rx.recv()
-    }
+    }*/
 }

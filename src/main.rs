@@ -35,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.clear()?;
     terminal.hide_cursor()?;
 
-    let events = Events::new();
+    let events = Events::new(None);
     let mut should_quit = false;
 
     let menu = Menu::new();
@@ -62,7 +62,7 @@ fn main() -> Result<(), Box<dyn Error>> {
             right_panel.render_table(layout[1], 1, frame);
         })?;
 
-        if let Ok(event) = events.next() {
+        if let Ok(event) = events.recv() {
             match event {
                 Event::Input(key) => match key {
                     Key::Esc => should_quit = true,
