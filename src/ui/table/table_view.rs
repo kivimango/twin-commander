@@ -4,7 +4,7 @@ use termion::raw::RawTerminal;
 use tui::{
     backend::TermionBackend,
     layout::{Constraint, Layout, Rect},
-    style::{Color, Style},
+    style::{Color, Modifier, Style},
     widgets::{Block, Borders, Cell, Row, Table},
     Frame,
 };
@@ -14,17 +14,28 @@ const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
 /// Displays a directory's content with details in a table format.
 pub struct TableView {
     model: TableViewModel,
+    is_active: bool,
     sort_direction: TableSortDirection,
     sort_predicate: TableSortPredicate,
 }
 
 impl TableView {
+    /// Creates a new TableView instance with sane defaults.
     pub fn new() -> Self {
         TableView {
             model: TableViewModel::new(),
+            is_active: false,
             sort_direction: TableSortDirection::default(),
             sort_predicate: TableSortPredicate::default(),
         }
+    }
+
+    pub fn activate(&mut self) {
+        self.is_active = true;
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
     }
 
     pub fn change_dir(&mut self) {
@@ -50,12 +61,18 @@ impl TableView {
             }
             self.sort();
             self.model.push_parent_front();
+            self.select_first();
         }
+    }
+
+    pub fn is_active(&self) -> bool {
+        self.is_active
     }
 
     pub fn render_table(
         &mut self,
         main_layout: Rect,
+        panel_idx: usize,
         frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
     ) {
         let twin_table_layout = Layout::default()
@@ -85,7 +102,13 @@ impl TableView {
                 .collect::<Vec<Row>>();
         }
 
-        let selected_style = Style::default().fg(Color::Black).bg(Color::Red);
+        let selected_style = match self.is_active {
+            true => Style::default().fg(Color::Black).bg(Color::Red),
+            false => Style::default()
+                .fg(Color::Black)
+                .bg(Color::Red)
+                .add_modifier(Modifier::REVERSED),
+        };
         let cwd = String::from(self.model.pwd().to_str().unwrap());
 
         let left_table = Table::new(rows)
@@ -99,10 +122,12 @@ impl TableView {
             .highlight_style(selected_style)
             .style(Style::default().bg(Color::LightBlue).fg(Color::White))
             .column_spacing(0);
-        let right_table = left_table.clone();
 
-        frame.render_stateful_widget(left_table, twin_table_layout[0], self.model.state_mut());
-        frame.render_widget(right_table, twin_table_layout[1]);
+        frame.render_stateful_widget(
+            left_table,
+            twin_table_layout[panel_idx],
+            self.model.state_mut(),
+        );
     }
 
     pub fn select_first(&mut self) {

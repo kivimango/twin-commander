@@ -13,6 +13,20 @@ mod core;
 mod event;
 mod ui;
 
+enum ActivePanel {
+    Left,
+    Right,
+}
+
+impl ActivePanel {
+    fn switch(&mut self) {
+        match self {
+            ActivePanel::Left => *self = ActivePanel::Right,
+            ActivePanel::Right => *self = ActivePanel::Left,
+        }
+    }
+}
+
 fn main() -> Result<(), Box<dyn Error>> {
     // Initializing terminal with termion backend
     let stdout = stdout().into_raw_mode()?;
@@ -25,7 +39,10 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut should_quit = false;
 
     let menu = Menu::new();
-    let mut table_view = TableView::new();
+    let mut left_panel = TableView::new();
+    let mut right_panel = TableView::new();
+    left_panel.activate();
+    let mut active_panel = ActivePanel::Left;
 
     loop {
         if should_quit {
@@ -41,18 +58,44 @@ fn main() -> Result<(), Box<dyn Error>> {
                 .split(frame_size);
 
             menu.render(layout[0], frame);
-            table_view.render_table(layout[1], frame);
+            left_panel.render_table(layout[1], 0, frame);
+            right_panel.render_table(layout[1], 1, frame);
         })?;
 
         if let Ok(event) = events.next() {
             match event {
                 Event::Input(key) => match key {
                     Key::Esc => should_quit = true,
-                    Key::Home => table_view.select_first(),
-                    Key::End => table_view.select_last(),
-                    Key::Up => table_view.select_previous(),
-                    Key::Down => table_view.select_next(),
-                    Key::Char('\n') => table_view.change_dir(),
+                    Key::Char('\t') => {
+                        if left_panel.is_active() {
+                            left_panel.deactivate();
+                            right_panel.activate();
+                        } else {
+                            left_panel.activate();
+                            right_panel.deactivate();
+                        }
+                        active_panel.switch()
+                    }
+                    Key::Home => match active_panel {
+                        ActivePanel::Left => left_panel.select_first(),
+                        ActivePanel::Right => right_panel.select_first(),
+                    },
+                    Key::End => match active_panel {
+                        ActivePanel::Left => left_panel.select_last(),
+                        ActivePanel::Right => right_panel.select_last(),
+                    },
+                    Key::Up => match active_panel {
+                        ActivePanel::Left => left_panel.select_previous(),
+                        ActivePanel::Right => right_panel.select_previous(),
+                    },
+                    Key::Down => match active_panel {
+                        ActivePanel::Left => left_panel.select_next(),
+                        ActivePanel::Right => right_panel.select_next(),
+                    },
+                    Key::Char('\n') => match active_panel {
+                        ActivePanel::Left => left_panel.change_dir(),
+                        ActivePanel::Right => right_panel.change_dir(),
+                    },
                     _ => {}
                 },
                 Event::Tick => {}
@@ -60,7 +103,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         }
     }
 
-    // Restore the terminal and close application
+    // Restore terminal and close the application
     terminal.clear()?;
     terminal.show_cursor()?;
     Ok(())
