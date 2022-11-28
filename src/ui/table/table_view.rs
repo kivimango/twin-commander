@@ -65,13 +65,13 @@ impl TableView {
 
         let header_cells = CELL_HEADERS.iter().map(|header| Cell::from(*header));
         let table_header = Row::new(header_cells).height(1);
-        let mut rowssw = Vec::new();
+        let mut rows = Vec::new();
 
         if let Ok(_) = self.model.list() {
             self.sort();
             self.model.push_parent_front();
 
-            let rowss = self
+            rows = self
                 .model
                 .files()
                 .iter()
@@ -83,18 +83,17 @@ impl TableView {
                     ])
                 })
                 .collect::<Vec<Row>>();
-            rowssw = rowss;
         }
 
         let selected_style = Style::default().fg(Color::Black).bg(Color::Red);
         let cwd = String::from(self.model.pwd().to_str().unwrap());
 
-        let left_table = Table::new(rowssw)
+        let left_table = Table::new(rows)
             .block(Block::default().title(cwd).borders(Borders::ALL))
             .widths(&[
-                Constraint::Percentage(50),
-                Constraint::Percentage(25),
-                Constraint::Percentage(25),
+                Constraint::Percentage(70),
+                Constraint::Percentage(10),
+                Constraint::Percentage(20),
             ])
             .header(table_header)
             .highlight_style(selected_style)
