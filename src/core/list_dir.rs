@@ -1,7 +1,7 @@
+use chrono::{DateTime, Local};
 use std::fs;
 use std::io::Error;
 use std::path::Path;
-use chrono::{DateTime, Local};
 
 /// A structure representing one file with its metadata collected from listing files in a directory
 #[derive(Debug, Clone)]

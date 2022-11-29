@@ -9,7 +9,6 @@ use tui::{
     Frame,
 };
 
-
 /// Represents the menubar starting from the upper left corner.
 pub struct Menu {}
 
