@@ -38,7 +38,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let events = Events::new(None);
     let mut should_quit = false;
 
-    let menu = Menu::new();
+    let mut menu = Menu::new();
     let mut left_panel = TableView::new();
     let mut right_panel = TableView::new();
     left_panel.activate();
@@ -75,6 +75,18 @@ fn main() -> Result<(), Box<dyn Error>> {
                             right_panel.deactivate();
                         }
                         active_panel.switch()
+                    }
+                    // Menu
+                    Key::F(9) => menu.select_next(),
+                    Key::Left => {
+                        if menu.has_selection() {
+                            menu.select_previous()
+                        }
+                    }
+                    Key::Right => {
+                        if menu.has_selection() {
+                            menu.select_next()
+                        }
                     }
                     Key::Home => match active_panel {
                         ActivePanel::Left => left_panel.select_first(),
