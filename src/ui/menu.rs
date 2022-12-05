@@ -5,7 +5,7 @@ use tui::{
     layout::Rect,
     style::{Color, Modifier, Style},
     text::{Span, Spans},
-    widgets::{Tabs},
+    widgets::Tabs,
     Frame,
 };
 
@@ -15,7 +15,7 @@ enum MenuItems {
     Left,
     File,
     Command,
-    Right
+    Right,
 }
 
 impl From<&MenuItems> for usize {
@@ -24,7 +24,7 @@ impl From<&MenuItems> for usize {
             MenuItems::Left => 0,
             MenuItems::File => 1,
             MenuItems::Command => 2,
-            MenuItems::Right => 3
+            MenuItems::Right => 3,
         }
     }
 }
@@ -41,7 +41,7 @@ impl MenuItems {
             MenuItems::Left => MenuItems::File,
             MenuItems::File => MenuItems::Command,
             MenuItems::Command => MenuItems::Right,
-            MenuItems::Right => MenuItems::Left
+            MenuItems::Right => MenuItems::Left,
         }
     }
 
@@ -50,21 +50,19 @@ impl MenuItems {
             MenuItems::Left => MenuItems::Right,
             MenuItems::File => MenuItems::Left,
             MenuItems::Command => MenuItems::File,
-            MenuItems::Right => MenuItems::Command
+            MenuItems::Right => MenuItems::Command,
         }
     }
 }
 
 /// Represents the menubar starting from the upper left corner.
 pub struct Menu {
-    selected: Option<MenuItems>
+    selected: Option<MenuItems>,
 }
 
 impl Menu {
     pub fn new() -> Self {
-        Menu {
-            selected: None
-        }
+        Menu { selected: None }
     }
 
     /// Renders the menu into the first row of the terminal
@@ -77,13 +75,17 @@ impl Menu {
             .iter()
             .map(|item| {
                 let (first, rest) = item.split_at(1);
-                Spans::from(
-                    vec![
-                        Span::styled(first, Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED)),
-                        Span::styled(rest, Style::default().fg(Color::Black))
-                    ]
-                )
-            }).collect();
+                Spans::from(vec![
+                    Span::styled(
+                        first,
+                        Style::default()
+                            .fg(Color::Yellow)
+                            .add_modifier(Modifier::UNDERLINED),
+                    ),
+                    Span::styled(rest, Style::default().fg(Color::Black)),
+                ])
+            })
+            .collect();
         let menu: Tabs;
 
         if let Some(selected) = &self.selected {
@@ -94,8 +96,8 @@ impl Menu {
                 .divider(Span::raw(" "));
         } else {
             menu = Tabs::new(menu_items)
-            .style(Style::default().bg(Color::Cyan))
-            .divider(Span::raw(" "));
+                .style(Style::default().bg(Color::Cyan))
+                .divider(Span::raw(" "));
         }
 
         frame.render_widget(menu, main_layout);
