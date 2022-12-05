@@ -80,7 +80,7 @@ impl Menu {
                 Spans::from(
                     vec![
                         Span::styled(first, Style::default().fg(Color::Yellow).add_modifier(Modifier::UNDERLINED)),
-                        Span::styled(rest, Style::default().fg(Color::White).bg(Color::Cyan))
+                        Span::styled(rest, Style::default().fg(Color::Black))
                     ]
                 )
             }).collect();
@@ -89,14 +89,12 @@ impl Menu {
         if let Some(selected) = &self.selected {
             menu = Tabs::new(menu_items)
                 .select(selected.clone().into())
-                .style(Style::default().fg(Color::White).bg(Color::Cyan))
+                .style(Style::default().bg(Color::Cyan))
                 .highlight_style(Style::default().fg(Color::White).bg(Color::Black))
                 .divider(Span::raw(" "));
         } else {
             menu = Tabs::new(menu_items)
-            //.select(selected.into())
-            .style(Style::default().fg(Color::White).bg(Color::Cyan))
-            .highlight_style(Style::default().fg(Color::White).bg(Color::Black))
+            .style(Style::default().bg(Color::Cyan))
             .divider(Span::raw(" "));
         }
 
