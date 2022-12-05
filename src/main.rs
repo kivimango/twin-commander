@@ -9,6 +9,7 @@ use tui::{
 };
 use ui::{Menu, TableView};
 
+mod app;
 mod core;
 mod event;
 mod ui;
@@ -53,7 +54,11 @@ fn main() -> Result<(), Box<dyn Error>> {
             let frame_size = frame.size();
 
             let layout = Layout::default()
-                .constraints([Constraint::Min(1), Constraint::Percentage(99)])
+                .constraints([
+                    Constraint::Min(1),
+                    Constraint::Percentage(90),
+                    Constraint::Min(1),
+                ])
                 .direction(tui::layout::Direction::Vertical)
                 .split(frame_size);
 
