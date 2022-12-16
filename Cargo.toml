@@ -10,6 +10,7 @@ edition = "2018"
 chrono = { version="0.4.23", features= ["clock"], default-features = false }
 termion = "*"
 tui = { version = "0.19", features = ["termion"], default-features = false}
+tui-input = { version = "*", features = ["termion"], default-features = false }
 
 
 [profile.release]
