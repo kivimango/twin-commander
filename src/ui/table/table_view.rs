@@ -1,13 +1,16 @@
 use super::{
     centered_rect, sort, table_model::TableViewModel, TableSortDirection, TableSortPredicate,
 };
-use std::{io::Stdout, path::PathBuf};
+use std::{
+    io::Stdout,
+    path::{Path, PathBuf},
+};
 use termion::raw::RawTerminal;
 use tui::{
     backend::TermionBackend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
+    layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Widget, Wrap},
+    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
     Frame,
 };
 
@@ -69,6 +72,10 @@ impl TableView {
 
     pub fn is_active(&self) -> bool {
         self.is_active
+    }
+
+    pub fn pwd(&self) -> &Path {
+        self.model.pwd()
     }
 
     pub fn render_table(
@@ -145,7 +152,7 @@ impl TableView {
                         .borders(Borders::ALL)
                         .style(Style::default().bg(Color::LightRed).fg(Color::White)),
                 )
-                .wrap(Wrap { trim: false})
+                .wrap(Wrap { trim: false })
                 .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
                 .alignment(Alignment::Center);
             let area = centered_rect(50, 25, twin_table_layout[panel_idx]);
