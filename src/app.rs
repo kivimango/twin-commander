@@ -12,6 +12,11 @@ enum Dialog {
     MkDirDialog(crate::ui::MkDirDialog),
 }
 
+enum Widgets {
+    TwinPanel,
+    Dialog,
+}
+
 enum InputMode {
     Normal,
     Editing,
@@ -40,6 +45,7 @@ impl ActivePanel {
 pub struct Application {
     dialog: Option<Dialog>,
     input_mode: InputMode,
+    focused_widget: Widgets,
 }
 
 impl Application {
@@ -47,6 +53,7 @@ impl Application {
         Application {
             dialog: None,
             input_mode: InputMode::default(),
+            focused_widget: Widgets::TwinPanel,
         }
     }
 
@@ -112,8 +119,15 @@ impl Application {
                                 }
                                 // Menu
                                 Key::F(7) => {
-                                    self.dialog = Some(Dialog::MkDirDialog(MkDirDialog::new()));
+                                    let path = match active_panel {
+                                        ActivePanel::Left => left_panel.pwd(),
+                                        ActivePanel::Right => right_panel.pwd(),
+                                    };
+                                    self.dialog = Some(Dialog::MkDirDialog(MkDirDialog::new(
+                                        path.to_path_buf(),
+                                    )));
                                     self.input_mode = InputMode::Editing;
+                                    self.focused_widget = Widgets::Dialog;
                                 }
                                 Key::F(9) => menu.select_next(),
                                 Key::Left => {
@@ -150,27 +164,37 @@ impl Application {
                             }
                         }
                         InputMode::Editing => {
-                            match key {
-                                Key::Char('\n') => {
-                                    // create dirs
-                                    //let path = left_panel.pwd();
-                                    //let result = std::fs::create_dir(path);
-                                }
-                                Key::Char(char) => {
-                                    /*match char {
-                                        'A'..='Z' | 'a'..='z' => {
+                            if let Some(dialog) = &mut self.dialog {
+                                match dialog {
+                                    Dialog::MkDirDialog(mkdir_dialog) => match key {
+                                        Key::Char('\n') => match mkdir_dialog.state() {
+                                            crate::ui::MkDirDialogState::WaitingForInput => {
+                                                let result = mkdir_dialog.create_dir();
+                                                if let Ok(_) = result {
+                                                    self.input_mode = InputMode::Normal;
+                                                    self.dialog = None;
+                                                    self.focused_widget = Widgets::TwinPanel;
+                                                }
+                                            }
+                                            crate::ui::MkDirDialogState::DisplayErrorMessage(_) => {
+                                                self.input_mode = InputMode::Normal;
+                                                self.dialog = None;
+                                                self.focused_widget = Widgets::TwinPanel;
+                                            }
+                                            crate::ui::MkDirDialogState::DirCreated => {
+                                                self.input_mode = InputMode::Normal;
+                                                self.dialog = None;
+                                                self.focused_widget = Widgets::TwinPanel;
+                                            }
+                                        },
+                                        Key::Esc => {
+                                            self.input_mode = InputMode::Normal;
+                                            self.dialog = None;
+                                            self.focused_widget = Widgets::TwinPanel;
                                         }
-                                    }*/
-                                    if char.is_ascii_alphabetic() {
-                                        //self.input.handle(tui_input::InputRequest::InsertChar(char));
-                                    }
+                                        _ => mkdir_dialog.handle_key(key),
+                                    },
                                 }
-                                Key::Esc => {
-                                    self.dialog = None;
-                                    //self.input.reset();
-                                    self.input_mode = InputMode::Normal;
-                                }
-                                _ => {}
                             }
                         }
                     },
