@@ -1,5 +1,5 @@
 use crate::event::{Event, Events};
-use crate::ui::{centered_rect, BottomMenu, Menu, MkDirDialog, TableView};
+use crate::ui::{centered_rect, BottomMenu, Menu, MkDirDialog, RmDirDialog, TableView};
 use std::io::Stdout;
 use termion::event::Key;
 use termion::raw::RawTerminal;
@@ -9,7 +9,8 @@ use tui::widgets::Clear;
 use tui::Terminal;
 
 enum Dialog {
-    MkDirDialog(crate::ui::MkDirDialog),
+    MkDirDialog(MkDirDialog),
+    RmDirDialog(RmDirDialog),
 }
 
 enum Widgets {
@@ -97,6 +98,11 @@ impl Application {
                             frame.render_widget(Clear, area);
                             frame.render_widget(mkdir_dialog.widget(), area);
                         }
+                        Dialog::RmDirDialog(rmdir_dialog) => {
+                            let area = centered_rect(33, 25, frame_size);
+                            frame.render_widget(Clear, area);
+                            frame.render_widget(rmdir_dialog.render(), area);
+                        }
                     }
                 }
             });
@@ -128,6 +134,18 @@ impl Application {
                                     )));
                                     self.input_mode = InputMode::Editing;
                                     self.focused_widget = Widgets::Dialog;
+                                }
+                                Key::F(8) => {
+                                    let selection = match active_panel {
+                                        ActivePanel::Left => left_panel.get_selection(),
+                                        ActivePanel::Right => right_panel.get_selection(),
+                                    };
+                                    if !selection.is_empty() {
+                                        self.dialog =
+                                        Some(Dialog::RmDirDialog(RmDirDialog::new(selection)));
+                                    self.input_mode = InputMode::Editing;
+                                    self.focused_widget = Widgets::Dialog;
+                                    }
                                 }
                                 Key::F(9) => menu.select_next(),
                                 Key::Left => {
@@ -193,6 +211,14 @@ impl Application {
                                             self.focused_widget = Widgets::TwinPanel;
                                         }
                                         _ => mkdir_dialog.handle_key(key),
+                                    },
+                                    Dialog::RmDirDialog(rmdir_dialog) => match key {
+                                        Key::Esc => {
+                                            self.input_mode = InputMode::Normal;
+                                            self.dialog = None;
+                                            self.focused_widget = Widgets::TwinPanel;
+                                        }
+                                        _ => rmdir_dialog.handle_keys(key),
                                     },
                                 }
                             }
