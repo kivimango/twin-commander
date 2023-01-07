@@ -70,6 +70,18 @@ impl TableView {
         }
     }
 
+    pub fn get_selection(&self) -> Vec<PathBuf> {
+        let mut selected = Vec::new();
+        if let Some(selected_idx) = self.model.selected() {
+            if let Some(file) = self.model.files().get(selected_idx) {
+                let mut path = PathBuf::from(&self.model.pwd());
+                path.push(PathBuf::from(&file.name));
+                selected.push(path);
+            }
+        }
+        selected
+    }
+
     pub fn is_active(&self) -> bool {
         self.is_active
     }
