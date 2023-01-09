@@ -37,6 +37,10 @@ impl TableView {
 
     pub fn activate(&mut self) {
         self.is_active = true;
+
+        if !self.has_selection() {
+            self.select_first()
+        }
     }
 
     pub fn deactivate(&mut self) {
@@ -80,6 +84,10 @@ impl TableView {
             }
         }
         selected
+    }
+
+    pub fn has_selection(&self) -> bool {
+        self.model.selected().is_some()
     }
 
     pub fn is_active(&self) -> bool {
