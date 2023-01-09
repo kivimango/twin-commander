@@ -1,3 +1,5 @@
+use std::cmp::Ordering;
+
 use crate::core::list_dir::DirContent;
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
@@ -56,9 +58,20 @@ pub(crate) fn sort(
 ) {
     match predicate {
         TableSortPredicate::Name => {
-            // TODO: sort directories first ?
+            // TODO: too much if statements...can we do better ?
+            // TODO: Add config to ignore case-sensitive file/dir names
             match direction {
-                TableSortDirection::Ascending => files.sort_by(|a, b| a.name.cmp(&b.name)),
+                TableSortDirection::Ascending => files.sort_by(|a, b| {
+                    if a.is_dir && b.is_dir {
+                        a.name.cmp(&b.name)
+                    } else if a.is_dir && !b.is_dir {
+                        Ordering::Less
+                    } else if !a.is_dir && b.is_dir {
+                        Ordering::Greater
+                    } else {
+                        a.name.cmp(&b.name)
+                    }
+                }),
                 TableSortDirection::Descending => files.sort_by(|a, b| b.name.cmp(&a.name)),
             }
         }
