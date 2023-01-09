@@ -116,10 +116,17 @@ impl TableView {
                     .files()
                     .iter()
                     .map(|row| {
+                        let cell_style = match row.is_dir {
+                            true => Style::default()
+                                .bg(Color::LightBlue)
+                                .fg(Color::White)
+                                .add_modifier(Modifier::BOLD),
+                            false => Style::default().bg(Color::LightBlue).fg(Color::White),
+                        };
                         Row::new(vec![
-                            Cell::from(row.name.clone()),
-                            Cell::from(row.size.clone()),
-                            Cell::from(row.date.clone()),
+                            Cell::style(Cell::from(row.name.clone()), cell_style),
+                            Cell::style(Cell::from(row.size.clone()), cell_style),
+                            Cell::style(Cell::from(row.date.clone()), cell_style),
                         ])
                     })
                     .collect::<Vec<Row>>();
