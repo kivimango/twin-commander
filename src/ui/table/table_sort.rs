@@ -72,7 +72,17 @@ pub(crate) fn sort(
                         a.name.cmp(&b.name)
                     }
                 }),
-                TableSortDirection::Descending => files.sort_by(|a, b| b.name.cmp(&a.name)),
+                TableSortDirection::Descending => files.sort_by(|a, b| {
+                    if a.is_dir && b.is_dir {
+                        b.name.cmp(&a.name)
+                    } else if a.is_dir && !b.is_dir {
+                        Ordering::Less
+                    } else if !a.is_dir && b.is_dir {
+                        Ordering::Greater
+                    } else {
+                        b.name.cmp(&a.name)
+                    }
+                }),
             }
         }
         TableSortPredicate::Size => match direction {
@@ -134,8 +144,8 @@ mod test {
             &mut files,
         );
 
-        assert_eq!(files[0].name, String::from("test.txt"));
-        assert_eq!(files[files.len() - 1].name, String::from("Alpha"));
+        assert_eq!(files[0].name, String::from("Omega"));
+        assert_eq!(files[files.len() - 1].name, String::from("a.out"));
     }
 
     #[test]
