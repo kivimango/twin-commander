@@ -96,14 +96,14 @@ impl TableView {
         panel_idx: usize,
         frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
     ) {
-        let twin_table_layout = Layout::default()
+        let table_layout = Layout::default()
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .direction(tui::layout::Direction::Horizontal)
             .split(main_layout);
 
         let header_cells = CELL_HEADERS.iter().map(|header| Cell::from(*header));
         let table_header = Row::new(header_cells).height(1);
-        let mut rows = Vec::new();
+        let mut file_list = Vec::new();
         let mut error = None;
 
         match self.model.list() {
@@ -111,12 +111,12 @@ impl TableView {
                 self.sort();
                 self.model.push_parent_front();
 
-                rows = self
+                file_list = self
                     .model
                     .files()
                     .iter()
-                    .map(|row| {
-                        let cell_style = match row.is_dir {
+                    .map(|file| {
+                        let cell_style = match file.is_dir {
                             true => Style::default()
                                 .bg(Color::LightBlue)
                                 .fg(Color::White)
@@ -124,9 +124,9 @@ impl TableView {
                             false => Style::default().bg(Color::LightBlue).fg(Color::White),
                         };
                         Row::new(vec![
-                            Cell::style(Cell::from(row.name.clone()), cell_style),
-                            Cell::style(Cell::from(row.size.clone()), cell_style),
-                            Cell::style(Cell::from(row.date.clone()), cell_style),
+                            Cell::style(Cell::from(file.name.clone()), cell_style),
+                            Cell::style(Cell::from(file.size.clone()), cell_style),
+                            Cell::style(Cell::from(file.date.clone()), cell_style),
                         ])
                     })
                     .collect::<Vec<Row>>();
@@ -145,7 +145,7 @@ impl TableView {
         };
         let cwd = String::from(self.model.pwd().to_str().unwrap());
 
-        let left_table = Table::new(rows)
+        let table_view = Table::new(file_list)
             .block(Block::default().title(cwd).borders(Borders::ALL))
             .widths(&[
                 Constraint::Percentage(70),
@@ -158,8 +158,8 @@ impl TableView {
             .column_spacing(0);
 
         frame.render_stateful_widget(
-            left_table,
-            twin_table_layout[panel_idx],
+            table_view,
+            table_layout[panel_idx],
             self.model.state_mut(),
         );
 
@@ -174,7 +174,7 @@ impl TableView {
                 .wrap(Wrap { trim: false })
                 .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
                 .alignment(Alignment::Center);
-            let area = centered_rect(50, 25, twin_table_layout[panel_idx]);
+            let area = centered_rect(50, 25, table_layout[panel_idx]);
             frame.render_widget(Clear, area);
             frame.render_widget(popup, area);
         }
