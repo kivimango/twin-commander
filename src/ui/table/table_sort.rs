@@ -7,7 +7,7 @@ pub(crate) trait SortBy {
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
 /// Default is TableSortDirection::Ascending.
-#[derive(Copy, Clone, PartialEq)]
+#[derive(Copy, Clone, Debug, PartialEq)]
 pub enum TableSortDirection {
     // Values are arranged from the lowest to the highest.
     /// The lowest value will be placed on the top of the
@@ -236,13 +236,13 @@ mod test {
     use crate::core::list_dir::DirContent;
 
     #[test]
-    fn test_default() {
+    fn test_sort_direction_default() {
         let sort = TableSortDirection::default();
         assert_eq!(sort, TableSortDirection::Ascending);
     }
 
     #[test]
-    fn test_reverse() {
+    fn test_sort_direction_reverse() {
         let mut sort_asc = TableSortDirection::Ascending;
         let mut sort_desc = TableSortDirection::Descending;
 
