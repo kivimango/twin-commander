@@ -1,5 +1,5 @@
 use super::{
-    centered_rect, sort, table_model::TableViewModel, TableSortDirection, TableSortPredicate,
+    centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate, TableSorter,
 };
 use std::{
     io::Stdout,
@@ -20,8 +20,7 @@ const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
 pub struct TableView {
     model: TableViewModel,
     is_active: bool,
-    sort_direction: TableSortDirection,
-    sort_predicate: TableSortPredicate,
+    sorter: TableSorter,
 }
 
 impl TableView {
@@ -30,8 +29,7 @@ impl TableView {
         TableView {
             model: TableViewModel::new(),
             is_active: false,
-            sort_direction: TableSortDirection::default(),
-            sort_predicate: TableSortPredicate::default(),
+            sorter: TableSorter::default(),
         }
     }
 
@@ -165,11 +163,7 @@ impl TableView {
             .style(Style::default().bg(Color::LightBlue).fg(Color::White))
             .column_spacing(0);
 
-        frame.render_stateful_widget(
-            table_view,
-            table_layout[panel_idx],
-            self.model.state_mut(),
-        );
+        frame.render_stateful_widget(table_view, table_layout[panel_idx], self.model.state_mut());
 
         if let Some(error) = error {
             let popup = Paragraph::new(error.to_string())
@@ -213,14 +207,14 @@ impl TableView {
     }
 
     pub fn sort(&mut self) {
-        sort(
-            self.sort_direction,
-            self.sort_predicate,
-            self.model.files_mut(),
-        );
+        self.sorter.sort(self.model.files_mut());
     }
 
-    pub fn set_sort_by(&mut self, direction: TableSortDirection) {
-        self.sort_direction = direction;
+    pub fn _sort_by(&mut self, predicate: TableSortPredicate) {
+        self.sorter.set_predicate(predicate);
+    }
+
+    pub fn _set_direction(&mut self, direction: TableSortDirection) {
+        self.sorter.set_direction(direction);
     }
 }
