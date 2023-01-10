@@ -1,10 +1,13 @@
+use crate::core::list_dir::DirContent;
 use std::cmp::Ordering;
 
-use crate::core::list_dir::DirContent;
+pub(crate) trait SortBy {
+    fn sort(&self, files: &mut Vec<DirContent>);
+}
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
 /// Default is TableSortDirection::Ascending.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, PartialEq)]
 pub enum TableSortDirection {
     // Values are arranged from the lowest to the highest.
     /// The lowest value will be placed on the top of the
@@ -12,7 +15,7 @@ pub enum TableSortDirection {
     /// value in the row unit until it reaches the highest value that is
     /// placed on the bottom of the table.
     Ascending,
-    /// Values are arranged from the ighest to the lowest.
+    /// Values are arranged from the highest to the lowest.
     /// The highest value will be placed on the top of the
     /// table. Sorting will continue and place the next decreasing
     /// value in the row unit until it reaches the lowest value that is
@@ -36,6 +39,65 @@ impl TableSortDirection {
     }
 }
 
+pub(crate) struct TableSorter {
+    direction: TableSortDirection,
+    predicate: TableSortPredicate,
+    sorter: Box<dyn SortBy>,
+}
+
+impl Default for TableSorter {
+    fn default() -> Self {
+        TableSorter {
+            direction: TableSortDirection::default(),
+            predicate: TableSortPredicate::default(),
+            sorter: Box::new(NameSorterAsc),
+        }
+    }
+}
+
+impl TableSorter {
+    pub(crate) fn new() -> Self {
+        TableSorter::default()
+    }
+
+    pub(crate) fn _with(direction: TableSortDirection, predicate: TableSortPredicate) -> Self {
+        TableSorter {
+            direction,
+            predicate,
+            sorter: get_type_by(direction, predicate),
+        }
+    }
+
+    pub(crate) fn set_direction(&mut self, direction: TableSortDirection) {
+        self.direction = direction;
+        self.sorter = get_type_by(direction, self.predicate);
+    }
+
+    pub(crate) fn set_predicate(&mut self, predicate: TableSortPredicate) {
+        self.predicate = predicate;
+        self.sorter = get_type_by(self.direction, predicate);
+    }
+
+    pub(crate) fn sort(&self, files: &mut Vec<DirContent>) {
+        self.sorter.sort(files)
+    }
+}
+
+fn get_type_by(direction: TableSortDirection, predicate: TableSortPredicate) -> Box<dyn SortBy> {
+    match direction {
+        TableSortDirection::Ascending => match predicate {
+            TableSortPredicate::Name => Box::new(NameSorterAsc),
+            TableSortPredicate::Size => Box::new(SizeSorterAsc),
+            TableSortPredicate::LastModified => Box::new(LastModifiedSorterAsc),
+        },
+        TableSortDirection::Descending => match predicate {
+            TableSortPredicate::Name => Box::new(NameSorterDesc),
+            TableSortPredicate::Size => Box::new(SizeSorterDesc),
+            TableSortPredicate::LastModified => Box::new(LastModifiedSorterDesc),
+        },
+    }
+}
+
 /// Defines the column on which the TableView should be sorted by.
 /// Default is TableSortPredicate::Name.
 #[derive(Copy, Clone, Debug, PartialEq)]
@@ -51,55 +113,126 @@ impl Default for TableSortPredicate {
     }
 }
 
-pub(crate) fn sort(
-    direction: TableSortDirection,
-    predicate: TableSortPredicate,
-    files: &mut Vec<DirContent>,
-) {
-    match predicate {
-        TableSortPredicate::Name => {
-            // TODO: too much if statements...can we do better ?
-            // TODO: Add config to ignore case-sensitive file/dir names
-            match direction {
-                TableSortDirection::Ascending => files.sort_by(|a, b| {
-                    if a.is_dir && b.is_dir {
-                        a.name.cmp(&b.name)
-                    } else if a.is_dir && !b.is_dir {
-                        Ordering::Less
-                    } else if !a.is_dir && b.is_dir {
-                        Ordering::Greater
-                    } else {
-                        a.name.cmp(&b.name)
-                    }
-                }),
-                TableSortDirection::Descending => files.sort_by(|a, b| {
-                    if a.is_dir && b.is_dir {
-                        b.name.cmp(&a.name)
-                    } else if a.is_dir && !b.is_dir {
-                        Ordering::Less
-                    } else if !a.is_dir && b.is_dir {
-                        Ordering::Greater
-                    } else {
-                        b.name.cmp(&a.name)
-                    }
-                }),
+/// It sorts the files in ascending order by name.
+/// This sorter is case-sensitive.
+pub(crate) struct NameSorterAsc;
+
+impl SortBy for NameSorterAsc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                a.name.cmp(&b.name)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                a.name.cmp(&b.name)
             }
-        }
-        TableSortPredicate::Size => match direction {
-            TableSortDirection::Ascending => files.sort_by(|a, b| a.size.cmp(&b.size)),
-            TableSortDirection::Descending => files.sort_by(|a, b| b.size.cmp(&a.size)),
-        },
-        TableSortPredicate::LastModified => match direction {
-            TableSortDirection::Ascending => files.sort_by(|a, b| a.date.cmp(&b.date)),
-            TableSortDirection::Descending => files.sort_by(|a, b| b.date.cmp(&a.date)),
-        },
+        })
+    }
+}
+
+/// It sorts the files in descending order by name.
+/// This sorter is case-sensitive.
+pub(crate) struct NameSorterDesc;
+
+impl SortBy for NameSorterDesc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                b.name.cmp(&a.name)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                b.name.cmp(&a.name)
+            }
+        })
+    }
+}
+
+/// It sorts the files in ascending order by size.
+pub(crate) struct SizeSorterAsc;
+
+impl SortBy for SizeSorterAsc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                a.size.cmp(&b.size)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                a.size.cmp(&b.size)
+            }
+        })
+    }
+}
+
+/// It sorts the files in descending order by size.
+pub(crate) struct SizeSorterDesc;
+
+impl SortBy for SizeSorterDesc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                b.size.cmp(&a.size)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                b.size.cmp(&a.size)
+            }
+        })
+    }
+}
+
+/// It sorts the files in ascending order by their last modified date.
+pub(crate) struct LastModifiedSorterAsc;
+
+impl SortBy for LastModifiedSorterAsc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                a.date.cmp(&b.date)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                a.date.cmp(&b.date)
+            }
+        })
+    }
+}
+
+/// It sorts the files in descending order by their last modified date.
+pub(crate) struct LastModifiedSorterDesc;
+
+impl SortBy for LastModifiedSorterDesc {
+    fn sort(&self, files: &mut Vec<DirContent>) {
+        files.sort_by(|a, b| {
+            if a.is_dir && b.is_dir {
+                b.date.cmp(&a.date)
+            } else if a.is_dir && !b.is_dir {
+                Ordering::Less
+            } else if !a.is_dir && b.is_dir {
+                Ordering::Greater
+            } else {
+                b.date.cmp(&a.date)
+            }
+        })
     }
 }
 
 #[allow(dead_code)]
 #[cfg(test)]
 mod test {
-    use super::{sort, TableSortDirection, TableSortPredicate};
+    use super::{TableSortDirection, TableSortPredicate};
     use crate::core::list_dir::DirContent;
 
     #[test]
