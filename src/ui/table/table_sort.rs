@@ -232,8 +232,11 @@ impl SortBy for LastModifiedSorterDesc {
 #[allow(dead_code)]
 #[cfg(test)]
 mod test {
-    use super::{TableSortDirection, TableSortPredicate};
-    use crate::core::list_dir::DirContent;
+    use super::{SortBy, TableSortDirection};
+    use crate::{
+        core::list_dir::DirContent,
+        ui::{LastModifiedSorterAsc, LastModifiedSorterDesc, NameSorterAsc, NameSorterDesc},
+    };
 
     #[test]
     fn test_sort_direction_default() {
@@ -256,28 +259,32 @@ mod test {
     #[test]
     fn test_sort_by_name_asc() {
         let mut files = setup();
+        let sorter = NameSorterAsc;
 
-        sort(
-            TableSortDirection::Ascending,
-            TableSortPredicate::Name,
-            &mut files,
-        );
+        sorter.sort(&mut files);
 
+        // directories first
         assert_eq!(files[0].name, String::from("Alpha"));
+        assert_eq!(files[2].name, String::from("Omega"));
+
+        //then files
+        assert_eq!(files[3].name, String::from("a.out"));
         assert_eq!(files[files.len() - 1].name, String::from("test.txt"));
     }
 
     #[test]
     fn test_sort_by_name_desc() {
         let mut files = setup();
+        let sorter = NameSorterDesc;
 
-        sort(
-            TableSortDirection::Descending,
-            TableSortPredicate::Name,
-            &mut files,
-        );
+        sorter.sort(&mut files);
 
+        // directories first
         assert_eq!(files[0].name, String::from("Omega"));
+        assert_eq!(files[2].name, String::from("Alpha"));
+
+        //then files
+        assert_eq!(files[3].name, String::from("test.txt"));
         assert_eq!(files[files.len() - 1].name, String::from("a.out"));
     }
 
@@ -290,14 +297,16 @@ mod test {
     #[test]
     fn test_sort_by_last_modified_asc() {
         let mut files = setup();
+        let sorter = LastModifiedSorterAsc;
 
-        sort(
-            TableSortDirection::Ascending,
-            TableSortPredicate::LastModified,
-            &mut files,
-        );
+        sorter.sort(&mut files);
 
+        // directories first
         assert_eq!(files[0].date, String::from("2022.11.23 11:03:01"));
+        assert_eq!(files[2].date, String::from("2022.11.25 13:05:03"));
+
+        // then files
+        assert_eq!(files[3].date, String::from("2022.11.26 14:06:04"));
         assert_eq!(
             files[files.len() - 1].date,
             String::from("2022.11.27 15:07:05")
@@ -307,17 +316,20 @@ mod test {
     #[test]
     fn test_sort_by_last_modified_desc() {
         let mut files = setup();
+        let sorter = LastModifiedSorterDesc;
 
-        sort(
-            TableSortDirection::Descending,
-            TableSortPredicate::LastModified,
-            &mut files,
-        );
+        sorter.sort(&mut files);
+        print!("vec: {:?}", files);
 
-        assert_eq!(files[0].date, String::from("2022.11.27 15:07:05"));
+        // directories first
+        assert_eq!(files[0].date, String::from("2022.11.25 13:05:03"));
+        assert_eq!(files[2].date, String::from("2022.11.23 11:03:01"));
+
+        // then files
+        assert_eq!(files[3].date, String::from("2022.11.27 15:07:05"));
         assert_eq!(
             files[files.len() - 1].date,
-            String::from("2022.11.23 11:03:01")
+            String::from("2022.11.26 14:06:04")
         );
     }
 
