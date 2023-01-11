@@ -338,35 +338,35 @@ mod test {
         files.push(DirContent {
             name: String::from("Beta"),
             is_dir: true,
-            size: String::from("<DIR>"),
+            size: None,
             date: String::from("2022.11.24 12:04:02"),
             attrs: String::new(),
         });
         files.push(DirContent {
             name: String::from("Omega"),
             is_dir: true,
-            size: String::from("<DIR>"),
+            size: None,
             date: String::from("2022.11.25 13:05:03"),
             attrs: String::new(),
         });
         files.push(DirContent {
             name: String::from("Alpha"),
             is_dir: true,
-            size: String::from("<DIR>"),
+            size: None,
             date: String::from("2022.11.23 11:03:01"),
             attrs: String::new(),
         });
         files.push(DirContent {
             name: String::from("test.txt"),
             is_dir: false,
-            size: String::from("816"),
+            size: None,
             date: String::from("2022.11.26 14:06:04"),
             attrs: String::new(),
         });
         files.push(DirContent {
             name: String::from("a.out"),
             is_dir: false,
-            size: String::from("8467"),
+            size: None,
             date: String::from("2022.11.27 15:07:05"),
             attrs: String::new(),
         });
