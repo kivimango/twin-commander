@@ -8,7 +8,7 @@ use std::path::Path;
 pub struct DirContent {
     pub name: String,
     pub is_dir: bool,
-    pub size: String,
+    pub size: Option<u64>,
     pub date: String,
     pub attrs: String,
 }
@@ -36,11 +36,11 @@ pub fn list_dir(dir: &Path) -> Result<Vec<DirContent>, Error> {
             };
 
             let mut is_dir = true;
-            let mut size = String::from("<DIR>");
+            let mut size = None;
 
             if !metadata.is_dir() {
                 is_dir = false;
-                size = metadata.len().to_string();
+                size = Some(metadata.len());
             }
 
             let date = match metadata.modified() {
