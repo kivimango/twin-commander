@@ -1,6 +1,7 @@
 use super::{
     centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate, TableSorter,
 };
+use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
     path::{Path, PathBuf},
@@ -129,9 +130,15 @@ impl TableView {
                                 .add_modifier(Modifier::BOLD),
                             false => Style::default().bg(Color::LightBlue).fg(Color::White),
                         };
+                        let size_cell = match file.size {
+                            Some(size) => {
+                                Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL)))
+                            }
+                            None => Cell::from("<DIR>"),
+                        };
                         Row::new(vec![
                             Cell::style(Cell::from(file.name.clone()), cell_style),
-                            Cell::style(Cell::from(file.size.clone()), cell_style),
+                            Cell::style(size_cell, cell_style),
                             Cell::style(Cell::from(file.date.clone()), cell_style),
                         ])
                     })
