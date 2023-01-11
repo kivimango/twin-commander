@@ -69,7 +69,7 @@ impl TableViewModel {
         if let Some(_parent) = self.cwd.parent() {
             let parent = DirContent {
                 name: String::from(".."),
-                size: String::from("<DIR>"),
+                size: None,
                 is_dir: true,
                 date: String::from("Date"),
                 attrs: String::new(),
