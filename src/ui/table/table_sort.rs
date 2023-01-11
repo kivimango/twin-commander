@@ -109,7 +109,7 @@ pub enum TableSortPredicate {
 
 impl Default for TableSortPredicate {
     fn default() -> Self {
-        TableSortPredicate::Name
+        TableSortPredicate::Size
     }
 }
 
@@ -160,7 +160,7 @@ impl SortBy for SizeSorterAsc {
     fn sort(&self, files: &mut Vec<DirContent>) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
-                a.size.cmp(&b.size)
+                b.size.cmp(&a.size)
             } else if a.is_dir && !b.is_dir {
                 Ordering::Less
             } else if !a.is_dir && b.is_dir {
@@ -232,11 +232,8 @@ impl SortBy for LastModifiedSorterDesc {
 #[allow(dead_code)]
 #[cfg(test)]
 mod test {
-    use super::{SortBy, TableSortDirection};
-    use crate::{
-        core::list_dir::DirContent,
-        ui::{LastModifiedSorterAsc, LastModifiedSorterDesc, NameSorterAsc, NameSorterDesc},
-    };
+    use super::*;
+    use crate::core::list_dir::DirContent;
 
     #[test]
     fn test_sort_direction_default() {
@@ -289,10 +286,38 @@ mod test {
     }
 
     #[test]
-    fn test_sort_by_size_asc() {}
+    fn test_sort_by_size_asc() {
+        let mut files = setup();
+        let sorter = SizeSorterAsc;
+
+        sorter.sort(&mut files);
+
+        // directories first
+        assert_eq!(files[0].size, None);
+        assert_eq!(files[1].size, None);
+        assert_eq!(files[2].size, None);
+
+        // then files
+        assert_eq!(files[3].size, Some(816));
+        assert_eq!(files[4].size, Some(8467));
+    }
 
     #[test]
-    fn test_sort_by_size_desc() {}
+    fn test_sort_by_size_desc() {
+        let mut files = setup();
+        let sorter = SizeSorterDesc;
+
+        sorter.sort(&mut files);
+
+        // directories first
+        assert_eq!(files[0].size, None);
+        assert_eq!(files[1].size, None);
+        assert_eq!(files[2].size, None);
+
+        // then files
+        assert_eq!(files[3].size, Some(8467));
+        assert_eq!(files[4].size, Some(816));
+    }
 
     #[test]
     fn test_sort_by_last_modified_asc() {
@@ -319,7 +344,6 @@ mod test {
         let sorter = LastModifiedSorterDesc;
 
         sorter.sort(&mut files);
-        print!("vec: {:?}", files);
 
         // directories first
         assert_eq!(files[0].date, String::from("2022.11.25 13:05:03"));
@@ -359,14 +383,14 @@ mod test {
         files.push(DirContent {
             name: String::from("test.txt"),
             is_dir: false,
-            size: None,
+            size: Some(816),
             date: String::from("2022.11.26 14:06:04"),
             attrs: String::new(),
         });
         files.push(DirContent {
             name: String::from("a.out"),
             is_dir: false,
-            size: None,
+            size: Some(8467),
             date: String::from("2022.11.27 15:07:05"),
             attrs: String::new(),
         });
