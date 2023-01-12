@@ -23,7 +23,7 @@ pub enum Event<I> {
 /// and produces Events through a channel that can be consumed by the application.
 pub struct Events {
     _tx: mpsc::Sender<Event<Key>>,
-    rx: mpsc::Receiver<Event<Key>>,
+    //rx: mpsc::Receiver<Event<Key>>,
 }
 
 impl Events {
