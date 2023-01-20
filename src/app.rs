@@ -101,7 +101,7 @@ impl Application {
                         Dialog::RmDirDialog(rmdir_dialog) => {
                             let area = centered_rect(33, 25, frame_size);
                             frame.render_widget(Clear, area);
-                            frame.render_widget(rmdir_dialog.render(), area);
+                            rmdir_dialog.render(frame, area);
                         }
                     }
                 }
@@ -142,9 +142,9 @@ impl Application {
                                     };
                                     if !selection.is_empty() {
                                         self.dialog =
-                                        Some(Dialog::RmDirDialog(RmDirDialog::new(selection)));
-                                    self.input_mode = InputMode::Editing;
-                                    self.focused_widget = Widgets::Dialog;
+                                            Some(Dialog::RmDirDialog(RmDirDialog::new(selection)));
+                                        self.input_mode = InputMode::Editing;
+                                        self.focused_widget = Widgets::Dialog;
                                     }
                                 }
                                 Key::F(9) => menu.select_next(),
