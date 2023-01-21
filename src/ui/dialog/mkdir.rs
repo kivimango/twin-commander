@@ -8,6 +8,20 @@ use tui::{
 };
 use tui_input::{Input, InputRequest};
 
+enum Buttons {
+    Ok,
+    Cancel,
+}
+
+impl Buttons {
+    fn next(&mut self) {
+        match *self {
+            Buttons::Ok => *self = Buttons::Cancel,
+            Buttons::Cancel => *self = Buttons::Ok,
+        }
+    }
+}
+
 #[derive(PartialEq)]
 /// Represents the state of the dialog
 pub enum MkDirDialogState {
@@ -18,6 +32,7 @@ pub enum MkDirDialogState {
 
 /// Represents a dialog used for creating a new directory.
 pub struct MkDirDialog {
+    button: Buttons,
     input: Input,
     parent_dir: PathBuf,
     state: MkDirDialogState,
@@ -26,6 +41,7 @@ pub struct MkDirDialog {
 impl MkDirDialog {
     pub fn new(parent_dir: PathBuf) -> Self {
         MkDirDialog {
+            button: Buttons::Cancel,
             input: Input::default(),
             state: MkDirDialogState::WaitingForInput,
             parent_dir,
@@ -60,6 +76,7 @@ impl MkDirDialog {
             Key::Delete => {
                 self.input.handle(InputRequest::DeleteNextChar);
             }
+            Key::Right | Key::Left | Key::Up | Key::Down => self.button.next(),
             _ => {}
         }
     }
@@ -79,6 +96,10 @@ impl MkDirDialog {
     }
 
     fn display_input(&self) -> Paragraph {
+        let button_titles = match self.button {
+            Buttons::Ok => ("[X] OK ", "[ ] Cancel"),
+            Buttons::Cancel => ("[ ] OK ", "[X] Cancel"),
+        };
         let spans = vec![
             Spans::from(vec![Span::styled(
                 "New directory name:",
@@ -89,8 +110,8 @@ impl MkDirDialog {
                 Style::default().bg(Color::Cyan).fg(Color::Black),
             )),
             Spans::from(vec![
-                Span::styled("[ ] OK ", Style::default().fg(Color::Black)),
-                Span::styled("[ ] Cancel", Style::default().fg(Color::Black)),
+                Span::styled(button_titles.0, Style::default().fg(Color::Black)),
+                Span::styled(button_titles.1, Style::default().fg(Color::Black)),
             ]),
         ];
         let text = Text::from(spans);
