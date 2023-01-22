@@ -99,6 +99,12 @@ impl Application {
                             frame.render_widget(mkdir_dialog.widget(), area);
                         }
                         Dialog::RmDirDialog(rmdir_dialog) => {
+                            if rmdir_dialog.should_quit() {
+                                self.input_mode = InputMode::Normal;
+                                self.dialog = None;
+                                self.focused_widget = Widgets::TwinPanel;
+                                return;
+                            }
                             let area = centered_rect(33, 25, frame_size);
                             frame.render_widget(Clear, area);
                             rmdir_dialog.render(frame, area);
