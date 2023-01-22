@@ -1,5 +1,5 @@
 use crate::event::{Event, Events};
-use crate::ui::{centered_rect, BottomMenu, Menu, MkDirDialog, RmDirDialog, TableView};
+use crate::ui::{centered_rect, BottomMenu, CopyDialog, Menu, MkDirDialog, RmDirDialog, TableView};
 use std::io::Stdout;
 use termion::event::Key;
 use termion::raw::RawTerminal;
@@ -9,6 +9,7 @@ use tui::widgets::Clear;
 use tui::Terminal;
 
 enum Dialog {
+    CopyDialog(CopyDialog),
     MkDirDialog(MkDirDialog),
     RmDirDialog(RmDirDialog),
 }
@@ -93,6 +94,11 @@ impl Application {
 
                 if let Some(dialog) = &self.dialog {
                     match dialog {
+                        Dialog::CopyDialog(cp_dialog) => {
+                            let area = centered_rect(33, 33, frame_size);
+                            frame.render_widget(Clear, area);
+                            cp_dialog.render(frame, area);
+                        }
                         Dialog::MkDirDialog(mkdir_dialog) => {
                             let area = centered_rect(33, 20, frame_size);
                             frame.render_widget(Clear, area);
@@ -129,7 +135,19 @@ impl Application {
                                     }
                                     active_panel.switch()
                                 }
-                                // Menu
+                                Key::F(5) => {
+                                    let (source, destination) = match active_panel {
+                                        ActivePanel::Left => (left_panel.pwd(), right_panel.pwd()),
+                                        ActivePanel::Right => (right_panel.pwd(), left_panel.pwd()),
+                                    };
+                                    self.dialog = Some(Dialog::CopyDialog(CopyDialog::new(
+                                        source.to_path_buf(),
+                                        destination.to_path_buf(),
+                                    )));
+                                    self.focused_widget = Widgets::Dialog;
+                                    self.input_mode = InputMode::Editing;
+                                }
+                                //Bottom Menu
                                 Key::F(7) => {
                                     let path = match active_panel {
                                         ActivePanel::Left => left_panel.pwd(),
@@ -190,6 +208,19 @@ impl Application {
                         InputMode::Editing => {
                             if let Some(dialog) = &mut self.dialog {
                                 match dialog {
+                                    Dialog::CopyDialog(copy_dialog) => match key {
+                                        Key::Char('\n') => {
+                                            copy_dialog.handle_key(key);
+                                        }
+                                        Key::Esc => {
+                                            self.input_mode = InputMode::Normal;
+                                            self.dialog = None;
+                                            self.focused_widget = Widgets::TwinPanel;
+                                        }
+                                        _ => {
+                                            copy_dialog.handle_key(key);
+                                        }
+                                    },
                                     Dialog::MkDirDialog(mkdir_dialog) => match key {
                                         Key::Char('\n') => match mkdir_dialog.state() {
                                             crate::ui::MkDirDialogState::WaitingForInput => {
