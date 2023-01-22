@@ -9,16 +9,16 @@ use tui::{
     Frame,
 };
 
-enum FocusedButton {
+enum Buttons {
     Ok,
     Cancel,
 }
 
-impl FocusedButton {
+impl Buttons {
     fn next(&mut self) {
         match *self {
-            FocusedButton::Ok => *self = FocusedButton::Cancel,
-            FocusedButton::Cancel => *self = FocusedButton::Ok,
+            Buttons::Ok => *self = Buttons::Cancel,
+            Buttons::Cancel => *self = Buttons::Ok,
         }
     }
 }
@@ -37,16 +37,18 @@ impl Default for DeleteDialogState {
 
 pub struct RmDirDialog {
     dialog_state: DeleteDialogState,
-    focused_button: FocusedButton,
-    path: Vec<PathBuf>,
+    files: Vec<PathBuf>,
+    focused_button: Buttons,
+    should_quit: bool,
 }
 
 impl RmDirDialog {
-    pub fn new(path: Vec<PathBuf>) -> Self {
+    pub fn new(files: Vec<PathBuf>) -> Self {
         RmDirDialog {
             dialog_state: DeleteDialogState::default(),
-            focused_button: FocusedButton::Cancel,
-            path,
+            files,
+            focused_button: Buttons::Cancel,
+            should_quit: false,
         }
     }
 
@@ -54,8 +56,15 @@ impl RmDirDialog {
         match key {
             Key::Char('\n') => match self.dialog_state {
                 DeleteDialogState::WaitingForConfirmation => match self.focused_button {
-                    FocusedButton::Ok => self.dialog_state = DeleteDialogState::Deleting,
-                    FocusedButton::Cancel => {}
+                    Buttons::Ok => {
+                        self.dialog_state = DeleteDialogState::Deleting;
+                        delete_files(&self.files);
+                        self.dialog_state = DeleteDialogState::Deleted;
+                        self.should_quit = true;
+                    }
+                    Buttons::Cancel => {
+                        self.should_quit = true;
+                    }
                 },
                 _ => {}
             },
@@ -74,6 +83,10 @@ impl RmDirDialog {
         }
     }
 
+    pub fn should_quit(&self) -> bool {
+        self.should_quit
+    }
+
     fn show_confirmation_dialog(
         &self,
         frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
@@ -81,8 +94,8 @@ impl RmDirDialog {
     ) {
         let button_titles = {
             match self.focused_button {
-                FocusedButton::Ok => ("[X] OK ", "[ ] Cancel"),
-                FocusedButton::Cancel => ("[ ] OK ", "[X] Cancel"),
+                Buttons::Ok => ("[X] OK ", "[ ] Cancel"),
+                Buttons::Cancel => ("[ ] OK ", "[X] Cancel"),
             }
         };
         let spans = vec![
@@ -122,13 +135,13 @@ impl RmDirDialog {
     ) {
         let spans = vec![
             Spans::from(vec![Span::styled(
-                "Deleting:",
+                "Deleting file(s)",
                 Style::default().fg(Color::Black),
             )]),
-            Spans::from(vec![Span::styled(
+            /*Spans::from(vec![Span::styled(
                 self.get_name(),
                 Style::default().fg(Color::Black),
-            )]),
+            )]),*/
         ];
         let text = Text::from(spans);
         let paragraph = Paragraph::new(text)
@@ -142,9 +155,9 @@ impl RmDirDialog {
     /// Decides the confirmation message to be displayed to the user based on the type
     /// and the count of files on the path marked to delete.
     fn confirm_msg(&self) -> String {
-        let count = self.path.len();
+        let count = self.files.len();
         if count == 1 {
-            if let Some(file) = self.path.get(0) {
+            if let Some(file) = self.files.get(0) {
                 if file.is_dir() {
                     String::from(
                         "Are you sure you want to delete this folder and all of its content ?",
@@ -161,15 +174,25 @@ impl RmDirDialog {
     }
 
     fn get_name(&self) -> String {
-        let count = self.path.len();
+        let count = self.files.len();
         if count == 1 {
-            if let Some(file) = self.path.get(0) {
+            if let Some(file) = self.files.get(0) {
                 file.display().to_string()
             } else {
                 String::new()
             }
         } else {
             String::new()
+        }
+    }
+}
+
+fn delete_files(files: &Vec<PathBuf>) {
+    for file in files {
+        if file.is_file() || file.is_symlink() {
+            let _ = std::fs::remove_file(file.as_path());
+        } else if file.is_dir() {
+            let _ = std::fs::remove_dir_all(file.as_path());
         }
     }
 }
