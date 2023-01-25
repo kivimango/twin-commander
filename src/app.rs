@@ -1,5 +1,8 @@
 use crate::event::{Event, Events};
-use crate::ui::{centered_rect, BottomMenu, CopyDialog, Menu, MkDirDialog, RmDirDialog, TableView};
+use crate::ui::{
+    centered_rect, fixed_height_centered_rect, BottomMenu, CopyDialog, Menu, MkDirDialog,
+    RmDirDialog, TableView,
+};
 use std::io::Stdout;
 use termion::event::Key;
 use termion::raw::RawTerminal;
@@ -95,7 +98,7 @@ impl Application {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
                         Dialog::CopyDialog(cp_dialog) => {
-                            let area = centered_rect(33, 33, frame_size);
+                            let area = fixed_height_centered_rect(50, 7, frame_size);
                             frame.render_widget(Clear, area);
                             cp_dialog.render(frame, area);
                         }
