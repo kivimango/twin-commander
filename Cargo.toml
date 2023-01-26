@@ -1,18 +1,21 @@
 [package]
-name = "twin-commander"
-version = "0.1.0"
 authors = ["kivimango <balazsviktor23@gmail.com>"]
 edition = "2018"
+name = "twin-commander"
+version = "0.1.0"
 
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = { version="0.4.23", features = ["clock"], default-features = false }
-humansize = {version = "2.1.3", features = ["no_alloc"], default-features = false }
-termion = "*"
-tui = { version = "0.19", features = ["termion"], default-features = false}
-tui-input = { version = "*", features = ["termion"], default-features = false }
+chrono = {version = "0.4.23", features = ["clock"], default-features = false}
 
+# Not the best libary so far, but its do the job.Temporarily added for MVP completion.
+# After MVP released, roll your own, or fix its issues on a fork, see issues: https://github.com/webdesus/fs_extra/issues
+fs_extra = "1.2.0"
+humansize = {version = "2.1.3", features = ["no_alloc"], default-features = false}
+termion = "*"
+tui = {version = "0.19", features = ["termion"], default-features = false}
+tui-input = {version = "*", features = ["termion"], default-features = false}
 
 [profile.release]
 # Automatically strip symbols from the binary.
