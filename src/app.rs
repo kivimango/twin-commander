@@ -264,7 +264,16 @@ impl Application {
                             }
                         }
                     },
-                    Event::Tick => {}
+                    Event::Tick => {
+                        if let Some(dialog) = &mut self.dialog {
+                            match dialog {
+                                Dialog::CopyDialog(copy_dialog) => {
+                                    copy_dialog.tick();
+                                }
+                                _ => {}
+                            }
+                        }
+                    }
                 }
             }
         }
