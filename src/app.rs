@@ -140,8 +140,32 @@ impl Application {
                                 }
                                 Key::F(5) => {
                                     let (source, destination) = match active_panel {
-                                        ActivePanel::Left => (left_panel.pwd(), right_panel.pwd()),
-                                        ActivePanel::Right => (right_panel.pwd(), left_panel.pwd()),
+                                        ActivePanel::Left => {
+                                            if let Some(selected_file) =
+                                                left_panel.get_selected_file()
+                                            {
+                                                (selected_file, right_panel.pwd().to_path_buf())
+                                            } else {
+                                                // TODO: show error message about no selection
+                                                (
+                                                    left_panel.pwd().to_path_buf(),
+                                                    right_panel.pwd().to_path_buf(),
+                                                )
+                                            }
+                                        }
+                                        ActivePanel::Right => {
+                                            if let Some(selected_file) =
+                                                right_panel.get_selected_file()
+                                            {
+                                                (selected_file, left_panel.pwd().to_path_buf())
+                                            } else {
+                                                // TODO: show error message about no selection
+                                                (
+                                                    right_panel.pwd().to_path_buf(),
+                                                    left_panel.pwd().to_path_buf(),
+                                                )
+                                            }
+                                        }
                                     };
                                     self.dialog = Some(Dialog::CopyDialog(CopyDialog::new(
                                         source.to_path_buf(),
@@ -163,16 +187,30 @@ impl Application {
                                     self.focused_widget = Widgets::Dialog;
                                 }
                                 Key::F(8) => {
-                                    let selection = match active_panel {
+                                    /*let selection = match active_panel {
                                         ActivePanel::Left => left_panel.get_selection(),
                                         ActivePanel::Right => right_panel.get_selection(),
+                                    };*/
+                                    //if let Some(idx) = selection {
+                                    let path = match active_panel {
+                                        ActivePanel::Left => left_panel.get_selected_file(),
+                                        ActivePanel::Right => right_panel.get_selected_file(),
                                     };
-                                    if !selection.is_empty() {
+                                    if let Some(path) = path {
                                         self.dialog =
-                                            Some(Dialog::RmDirDialog(RmDirDialog::new(selection)));
+                                            Some(Dialog::RmDirDialog(RmDirDialog::new(vec![path])));
                                         self.input_mode = InputMode::Editing;
                                         self.focused_widget = Widgets::Dialog;
                                     }
+                                    //}
+                                    /*
+                                    if !selection.is_none() {
+                                        let path = self.dialog = Some(Dialog::RmDirDialog(
+                                            RmDirDialog::new(Vec::new(selection)),
+                                        ));
+                                        self.input_mode = InputMode::Editing;
+                                        self.focused_widget = Widgets::Dialog;
+                                    }*/
                                 }
                                 Key::F(9) => menu.select_next(),
                                 Key::Left => {
