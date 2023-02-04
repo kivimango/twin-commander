@@ -2,6 +2,8 @@
 
 A text mode twin-panel file manager for Redox OS inspired by Midnight and Total Commander.
 
+![Alt text](https://raw.github.com/kivimango/twin-commander/master/res/twc_preview_1.png "Preview")
+
 ## About the project
 
 This is my pet project for learning the Rust programming language.
