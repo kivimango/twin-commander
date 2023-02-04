@@ -190,9 +190,9 @@ impl RmDirDialog {
 fn delete_files(files: &Vec<PathBuf>) {
     for file in files {
         if file.is_file() || file.is_symlink() {
-            let _ = std::fs::remove_file(file.as_path());
+            let _ = std::fs::remove_file(file);
         } else if file.is_dir() {
-            let _ = std::fs::remove_dir_all(file.as_path());
+            let _ = std::fs::remove_dir_all(file);
         }
     }
 }
