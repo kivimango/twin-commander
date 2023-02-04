@@ -73,7 +73,8 @@ impl TableView {
         }
     }
 
-    pub fn get_selection(&self) -> Vec<PathBuf> {
+    /*pub fn get_selection(&self) -> Option<usize> {
+        // TODO: multi-select TableView
         let mut selected = Vec::new();
         if let Some(selected_idx) = self.model.selected() {
             if let Some(file) = self.model.files().get(selected_idx) {
@@ -83,6 +84,18 @@ impl TableView {
             }
         }
         selected
+    }*/
+
+    pub fn get_selected_file(&self) -> Option<PathBuf> {
+        if let Some(idx) = self.model.selected() {
+            if let Some(file) = self.model.files().get(idx) {
+                return Some(self.pwd().join(file.name.clone()).to_path_buf());
+            } else {
+                return None;
+            }
+        } else {
+            return None;
+        }
     }
 
     pub fn has_selection(&self) -> bool {
