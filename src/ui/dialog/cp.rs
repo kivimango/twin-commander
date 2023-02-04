@@ -1,13 +1,22 @@
-use std::{io::Stdout, path::PathBuf};
+use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitState};
+use humansize::{SizeFormatter, DECIMAL};
+use std::{
+    io::Stdout,
+    path::{Path, PathBuf},
+    sync::mpsc::{self, Receiver, Sender, TryRecvError},
+    thread,
+};
 use termion::{event::Key, raw::RawTerminal};
 use tui::{
     backend::TermionBackend,
     layout::{Alignment, Constraint, Layout, Rect},
     style::{Color, Modifier, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, Borders, Paragraph},
+    widgets::{Block, Borders, Gauge, Paragraph},
     Frame,
 };
+
+use crate::core::calculate_progress_percentage;
 
 enum Buttons {
     Ok,
@@ -23,23 +32,62 @@ impl Buttons {
     }
 }
 
+enum CopyDialogStatus {
+    WaitingForConfirmation,
+    Copying,
+    CopyFinished,
+}
+
+impl Default for CopyDialogStatus {
+    fn default() -> Self {
+        CopyDialogStatus::WaitingForConfirmation
+    }
+}
+
 pub struct CopyDialog {
+    copy_progress: TransitProcess,
     focused_button: Buttons,
     source: PathBuf,
     destination: PathBuf,
+    status: CopyDialogStatus,
+    tx: Sender<TransitProcess>,
+    rx: Receiver<TransitProcess>,
 }
 
 impl CopyDialog {
     pub(crate) fn new(source: PathBuf, destination: PathBuf) -> Self {
+        let (tx, rx) = mpsc::channel();
         CopyDialog {
+            copy_progress: TransitProcess {
+                copied_bytes: 0,
+                total_bytes: 0,
+                file_bytes_copied: 0,
+                file_total_bytes: 0,
+                file_name: String::new(),
+                state: TransitState::Normal,
+            },
             focused_button: Buttons::Ok,
             source,
             destination,
+            status: CopyDialogStatus::default(),
+            tx,
+            rx,
         }
     }
 
     pub(crate) fn handle_key(&mut self, key: Key) {
         match key {
+            Key::Char('\n') => match self.status {
+                CopyDialogStatus::WaitingForConfirmation => {
+                    self.status = CopyDialogStatus::Copying;
+                    copy_dir(
+                        self.source.clone(),
+                        self.destination.clone(),
+                        self.tx.clone(),
+                    );
+                }
+                _ => {}
+            },
             Key::Left | Key::Right | Key::Up | Key::Down => {
                 self.focused_button.next();
             }
@@ -47,8 +95,26 @@ impl CopyDialog {
         }
     }
 
+    pub(crate) fn tick(&mut self) {
+        match self.rx.try_recv() {
+            Ok(copy_progress) => {
+                self.copy_progress = copy_progress;
+            }
+            Err(_err) => match _err {
+                TryRecvError::Disconnected => {
+                    self.status = CopyDialogStatus::CopyFinished;
+                }
+                TryRecvError::Empty => {}
+            },
+        }
+    }
+
     pub fn render(&self, frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>, area: Rect) {
-        self.show_confirmation_dialog(frame, area)
+        match self.status {
+            CopyDialogStatus::WaitingForConfirmation => self.show_confirmation_dialog(frame, area),
+            CopyDialogStatus::Copying => self.show_copy_progress(frame, area),
+            CopyDialogStatus::CopyFinished => (),
+        }
     }
 
     fn show_confirmation_dialog(
@@ -65,6 +131,7 @@ impl CopyDialog {
         let dialog_area = Rect::new(area.x, area.y, area.width, area.height);
         let layout = Layout::default()
             .constraints([
+                Constraint::Length(1),
                 Constraint::Length(1),
                 Constraint::Length(1),
                 Constraint::Length(1),
@@ -112,4 +179,113 @@ impl CopyDialog {
         frame.render_widget(label_dest_path, layout[3]);
         frame.render_widget(buttons, layout[4]);
     }
+
+    fn show_copy_progress(
+        &self,
+        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
+        area: Rect,
+    ) {
+        let (total_percent, partial_percent) = calculate_progress_percentage(&self.copy_progress);
+        let dialog_area = Rect::new(area.x, area.y, area.width, area.height);
+        let layout = Layout::default()
+            .constraints([
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+                Constraint::Length(1),
+            ])
+            .margin(1)
+            .split(area);
+
+        let block = Block::default()
+            .border_type(tui::widgets::BorderType::Rounded)
+            .borders(Borders::ALL);
+
+        let current_file_label = Paragraph::new(Span::styled(
+            format!("Curent: {}", self.copy_progress.file_name),
+            Style::default().fg(Color::White),
+        ));
+        let dest_filename = self.destination.display().to_string();
+        let dest_label = Paragraph::new(Span::styled(
+            format!("To: {}", dest_filename),
+            Style::default().fg(Color::White),
+        ));
+
+        let progress_total = Gauge::default()
+            .percent(total_percent as u16)
+            .label(Span::from(total_percent.to_string()))
+            .gauge_style(Style::default().fg(Color::LightBlue));
+        let progress_partial = Gauge::default()
+            .percent(partial_percent as u16)
+            .gauge_style(Style::default().fg(Color::LightBlue));
+
+        let remaining_count = 11;
+        let total_count = 33;
+        let label_counter = Paragraph::new(Span::styled(
+            format!("{}/{}", remaining_count, total_count),
+            Style::default().fg(Color::White),
+        ))
+        .alignment(Alignment::Left);
+
+        let copy_speed = "10M/s";
+        let remaining_time = "2 mins";
+        let label_copy_speed = Paragraph::new(Span::styled(
+            format!("Copy: {}, {}", copy_speed, remaining_time),
+            Style::default().fg(Color::White),
+        ))
+        .alignment(Alignment::Center);
+
+        let label_filesizes = Paragraph::new(Span::styled(
+            format!(
+                "{}/{}",
+                SizeFormatter::new(self.copy_progress.file_bytes_copied, DECIMAL),
+                SizeFormatter::new(self.copy_progress.file_total_bytes, DECIMAL)
+            ),
+            Style::default().fg(Color::White),
+        ))
+        .alignment(Alignment::Right);
+
+        let pause_button = Span::styled("[ ] Pause ", Style::default().fg(Color::White));
+        let cancel_button = Span::styled("[ ] Cancel ", Style::default().fg(Color::White));
+        let background_button = Span::styled("[ ] Background", Style::default().fg(Color::White));
+        let buttons = Paragraph::new(Text::from(Spans::from(vec![
+            pause_button,
+            cancel_button,
+            background_button,
+        ])))
+        .alignment(Alignment::Center);
+
+        frame.render_widget(block, dialog_area);
+        frame.render_widget(current_file_label, layout[0]);
+        frame.render_widget(dest_label, layout[1]);
+        frame.render_widget(progress_total, layout[2]);
+        frame.render_widget(progress_partial, layout[3]);
+        frame.render_widget(label_counter, layout[4]);
+        frame.render_widget(label_copy_speed, layout[4]);
+        frame.render_widget(label_filesizes, layout[4]);
+        frame.render_widget(buttons, layout[5]);
+    }
+}
+
+fn copy_dir(from: PathBuf, to: PathBuf, tx: Sender<TransitProcess>) {
+    let mut options = CopyOptions::new();
+    options.buffer_size = 8 * 1024 * 1024; // 1MB
+
+    let from_1 = from.clone();
+    let to_1 = to.clone();
+
+    thread::spawn(move || {
+        let progress_handler = |progress_info: TransitProcess| {
+            if let Ok(_) = tx.send(progress_info) {}
+            fs_extra::dir::TransitProcessResult::Abort
+        };
+        let _result = copy_with_progress(
+            AsRef::<Path>::as_ref(&from_1),
+            AsRef::<Path>::as_ref(&to_1),
+            &options,
+            progress_handler,
+        );
+    });
 }
