@@ -13,13 +13,13 @@ pub use self::table::*;
 /// Helper function to create a centered rect with a fixed height
 /// and using up certain percentage of the available of width of `r`.
 pub fn fixed_height_centered_rect(percent_x: u16, height: u16, r: Rect) -> Rect {
-    let percent_y = 50;
+    let percent_y = ((height as f64 / r.height as f64) * 100.0) as u16;
     let popup_layout = Layout::default()
         .direction(Direction::Vertical)
         .constraints(
             [
                 Constraint::Percentage((100 - percent_y) / 2),
-                Constraint::Length(height),
+                Constraint::Percentage(percent_y),
                 Constraint::Percentage((100 - percent_y) / 2),
             ]
             .as_ref(),
@@ -54,7 +54,7 @@ mod test {
         println!("{:?}", area);
 
         assert_eq!(area.x, 25);
-        assert_eq!(area.y, 25);
+        assert_eq!(area.y, 45);
         assert_eq!(area.width, 50);
         assert_eq!(area.height, height);
     }
