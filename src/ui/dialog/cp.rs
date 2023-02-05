@@ -5,6 +5,7 @@ use std::{
     path::{Path, PathBuf},
     sync::mpsc::{self, Receiver, Sender, TryRecvError},
     thread,
+    time::Instant,
 };
 use termion::{event::Key, raw::RawTerminal};
 use tui::{
@@ -52,6 +53,7 @@ pub struct CopyDialog {
     status: CopyDialogStatus,
     tx: Sender<TransitProcess>,
     rx: Receiver<TransitProcess>,
+    start_time: Instant,
 }
 
 impl CopyDialog {
@@ -72,6 +74,7 @@ impl CopyDialog {
             status: CopyDialogStatus::default(),
             tx,
             rx,
+            start_time: Instant::now(),
         }
     }
 
@@ -79,6 +82,7 @@ impl CopyDialog {
         match key {
             Key::Char('\n') => match self.status {
                 CopyDialogStatus::WaitingForConfirmation => {
+                    self.start_time = Instant::now();
                     self.status = CopyDialogStatus::Copying;
                     copy_dir(
                         self.source.clone(),
@@ -204,7 +208,7 @@ impl CopyDialog {
             .borders(Borders::ALL);
 
         let current_file_label = Paragraph::new(Span::styled(
-            format!("Curent: {}", self.copy_progress.file_name),
+            format!("Current: {}", self.copy_progress.file_name),
             Style::default().fg(Color::White),
         ));
         let dest_filename = self.destination.display().to_string();
@@ -215,24 +219,25 @@ impl CopyDialog {
 
         let progress_total = Gauge::default()
             .percent(total_percent as u16)
-            .label(Span::from(total_percent.to_string()))
             .gauge_style(Style::default().fg(Color::LightBlue));
         let progress_partial = Gauge::default()
             .percent(partial_percent as u16)
             .gauge_style(Style::default().fg(Color::LightBlue));
-
-        let remaining_count = 11;
-        let total_count = 33;
-        let label_counter = Paragraph::new(Span::styled(
-            format!("{}/{}", remaining_count, total_count),
+        let label_remaining_size = Paragraph::new(Span::styled(
+            format!(
+                "{}/{}",
+                SizeFormatter::new(self.copy_progress.copied_bytes, DECIMAL),
+                SizeFormatter::new(self.copy_progress.total_bytes, DECIMAL)
+            ),
             Style::default().fg(Color::White),
         ))
         .alignment(Alignment::Left);
 
-        let copy_speed = "10M/s";
-        let remaining_time = "2 mins";
-        let label_copy_speed = Paragraph::new(Span::styled(
-            format!("Copy: {}, {}", copy_speed, remaining_time),
+        let secs = self.start_time.elapsed().as_secs() % 60;
+        let mins = (self.start_time.elapsed().as_secs() / 60) % 60;
+        let hours = (self.start_time.elapsed().as_secs() / 60) / 60;
+        let label_total_time = Paragraph::new(Span::styled(
+            format!("{}:{}:{}", hours, mins, secs),
             Style::default().fg(Color::White),
         ))
         .alignment(Alignment::Center);
@@ -262,8 +267,8 @@ impl CopyDialog {
         frame.render_widget(dest_label, layout[1]);
         frame.render_widget(progress_total, layout[2]);
         frame.render_widget(progress_partial, layout[3]);
-        frame.render_widget(label_counter, layout[4]);
-        frame.render_widget(label_copy_speed, layout[4]);
+        frame.render_widget(label_remaining_size, layout[4]);
+        frame.render_widget(label_total_time, layout[4]);
         frame.render_widget(label_filesizes, layout[4]);
         frame.render_widget(buttons, layout[5]);
     }
@@ -271,8 +276,7 @@ impl CopyDialog {
 
 fn copy_dir(from: PathBuf, to: PathBuf, tx: Sender<TransitProcess>) {
     let mut options = CopyOptions::new();
-    options.buffer_size = 8 * 1024 * 1024; // 1MB
-
+    options.buffer_size = 8 * 1024 * 1024; // TODO: configurable buffer, default is 1MB
     let from_1 = from.clone();
     let to_1 = to.clone();
 
