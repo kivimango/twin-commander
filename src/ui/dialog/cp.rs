@@ -51,14 +51,13 @@ pub struct CopyDialog {
     source: PathBuf,
     destination: PathBuf,
     status: CopyDialogStatus,
-    tx: Sender<TransitProcess>,
-    rx: Receiver<TransitProcess>,
+    rx: Option<Receiver<TransitProcess>>,
+    should_quit: bool,
     start_time: Instant,
 }
 
 impl CopyDialog {
     pub(crate) fn new(source: PathBuf, destination: PathBuf) -> Self {
-        let (tx, rx) = mpsc::channel();
         CopyDialog {
             copy_progress: TransitProcess {
                 copied_bytes: 0,
@@ -72,8 +71,8 @@ impl CopyDialog {
             source,
             destination,
             status: CopyDialogStatus::default(),
-            tx,
-            rx,
+            rx: None,
+            should_quit: false,
             start_time: Instant::now(),
         }
     }
@@ -84,11 +83,9 @@ impl CopyDialog {
                 CopyDialogStatus::WaitingForConfirmation => {
                     self.start_time = Instant::now();
                     self.status = CopyDialogStatus::Copying;
-                    copy_dir(
-                        self.source.clone(),
-                        self.destination.clone(),
-                        self.tx.clone(),
-                    );
+                    let (tx, rx) = mpsc::channel();
+                    self.rx = Some(rx);
+                    copy_dir(self.source.clone(), self.destination.clone(), tx);
                 }
                 _ => {}
             },
@@ -100,16 +97,19 @@ impl CopyDialog {
     }
 
     pub(crate) fn tick(&mut self) {
-        match self.rx.try_recv() {
-            Ok(copy_progress) => {
-                self.copy_progress = copy_progress;
-            }
-            Err(_err) => match _err {
-                TryRecvError::Disconnected => {
-                    self.status = CopyDialogStatus::CopyFinished;
+        if let Some(rx) = &self.rx {
+            match rx.try_recv() {
+                Ok(copy_progress) => {
+                    self.copy_progress = copy_progress;
                 }
-                TryRecvError::Empty => {}
-            },
+                Err(_err) => match _err {
+                    TryRecvError::Disconnected => {
+                        self.status = CopyDialogStatus::CopyFinished;
+                        self.should_quit = true;
+                    }
+                    TryRecvError::Empty => {}
+                },
+            }
         }
     }
 
@@ -272,6 +272,10 @@ impl CopyDialog {
         frame.render_widget(label_filesizes, layout[4]);
         frame.render_widget(buttons, layout[5]);
     }
+
+    pub(crate) fn should_quit(&self) -> bool {
+        self.should_quit
+    }
 }
 
 fn copy_dir(from: PathBuf, to: PathBuf, tx: Sender<TransitProcess>) {
@@ -283,7 +287,7 @@ fn copy_dir(from: PathBuf, to: PathBuf, tx: Sender<TransitProcess>) {
     thread::spawn(move || {
         let progress_handler = |progress_info: TransitProcess| {
             if let Ok(_) = tx.send(progress_info) {}
-            fs_extra::dir::TransitProcessResult::Abort
+            fs_extra::dir::TransitProcessResult::ContinueOrAbort
         };
         let _result = copy_with_progress(
             AsRef::<Path>::as_ref(&from_1),

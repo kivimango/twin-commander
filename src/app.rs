@@ -307,6 +307,11 @@ impl Application {
                             match dialog {
                                 Dialog::CopyDialog(copy_dialog) => {
                                     copy_dialog.tick();
+                                    if copy_dialog.should_quit() {
+                                        self.input_mode = InputMode::Normal;
+                                        self.dialog = None;
+                                        self.focused_widget = Widgets::TwinPanel;
+                                    }
                                 }
                                 _ => {}
                             }
