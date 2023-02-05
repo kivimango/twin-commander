@@ -98,7 +98,7 @@ impl Application {
                 if let Some(dialog) = &self.dialog {
                     match dialog {
                         Dialog::CopyDialog(cp_dialog) => {
-                            let area = fixed_height_centered_rect(50, 7, frame_size);
+                            let area = fixed_height_centered_rect(50, 8, frame_size);
                             frame.render_widget(Clear, area);
                             cp_dialog.render(frame, area);
                         }
@@ -114,7 +114,7 @@ impl Application {
                                 self.focused_widget = Widgets::TwinPanel;
                                 return;
                             }
-                            let area = centered_rect(33, 25, frame_size);
+                            let area = fixed_height_centered_rect(33, 6, frame_size);
                             frame.render_widget(Clear, area);
                             rmdir_dialog.render(frame, area);
                         }
