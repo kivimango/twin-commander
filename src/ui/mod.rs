@@ -51,8 +51,6 @@ mod test {
         let available_area = Rect::new(0, 0, 100, 100);
         let area = fixed_height_centered_rect(percent_x, height, available_area);
 
-        println!("{:?}", area);
-
         assert_eq!(area.x, 25);
         assert_eq!(area.y, 45);
         assert_eq!(area.width, 50);
