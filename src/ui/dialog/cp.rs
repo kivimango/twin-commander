@@ -1,4 +1,11 @@
-use fs_extra::dir::{copy_with_progress, CopyOptions, TransitProcess, TransitState};
+use crate::core::calculate_progress_percentage;
+use fs_extra::{
+    dir::{
+        copy_with_progress as copy_dir_with_progress, CopyOptions as DirCopyOptions,
+        TransitProcess as DirTransitProcess,
+    },
+    file::TransitProcess as FileTransitProcess,
+};
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
@@ -17,7 +24,13 @@ use tui::{
     Frame,
 };
 
-use crate::core::calculate_progress_percentage;
+// Convenient type for sending two type of data through a channel:
+// dont need two distinct (tx,rx)
+enum TransferProgress {
+    DirTransfer(DirTransitProcess),
+    FileTransfer(FileTransitProcess),
+    None,
+}
 
 enum Buttons {
     Ok,
@@ -46,12 +59,12 @@ impl Default for CopyDialogStatus {
 }
 
 pub struct CopyDialog {
-    copy_progress: TransitProcess,
+    copy_progress: TransferProgress,
     focused_button: Buttons,
     source: PathBuf,
     destination: PathBuf,
     status: CopyDialogStatus,
-    rx: Option<Receiver<TransitProcess>>,
+    rx: Option<Receiver<TransferProgress>>,
     should_quit: bool,
     start_time: Instant,
 }
@@ -59,14 +72,7 @@ pub struct CopyDialog {
 impl CopyDialog {
     pub(crate) fn new(source: PathBuf, destination: PathBuf) -> Self {
         CopyDialog {
-            copy_progress: TransitProcess {
-                copied_bytes: 0,
-                total_bytes: 0,
-                file_bytes_copied: 0,
-                file_total_bytes: 0,
-                file_name: String::new(),
-                state: TransitState::Normal,
-            },
+            copy_progress: TransferProgress::None,
             focused_button: Buttons::Ok,
             source,
             destination,
@@ -85,7 +91,11 @@ impl CopyDialog {
                     self.status = CopyDialogStatus::Copying;
                     let (tx, rx) = mpsc::channel();
                     self.rx = Some(rx);
-                    copy_dir(self.source.clone(), self.destination.clone(), tx);
+                    if self.source.is_dir() {
+                        copy_dir(&self.source, &self.destination, tx);
+                    } else if self.source.is_file() {
+                        copy_file(&self.source, &self.destination, tx);
+                    }
                 }
                 _ => {}
             },
@@ -189,7 +199,37 @@ impl CopyDialog {
         frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
         area: Rect,
     ) {
-        let (total_percent, partial_percent) = calculate_progress_percentage(&self.copy_progress);
+        let (total_percent, partial_percent) = match &self.copy_progress {
+            TransferProgress::DirTransfer(dir_progress) => (
+                calculate_progress_percentage(dir_progress.copied_bytes, dir_progress.total_bytes),
+                calculate_progress_percentage(
+                    dir_progress.file_bytes_copied,
+                    dir_progress.file_total_bytes,
+                ),
+            ),
+            TransferProgress::FileTransfer(file_progress) => (
+                0,
+                calculate_progress_percentage(
+                    file_progress.copied_bytes,
+                    file_progress.total_bytes,
+                ),
+            ),
+            TransferProgress::None => (0, 0),
+        };
+        let file_name = match &self.copy_progress {
+            TransferProgress::DirTransfer(dir_progress) => dir_progress.file_name.clone(),
+            TransferProgress::FileTransfer(_) => self.source.display().to_string(),
+            TransferProgress::None => String::new(),
+        };
+        let (copied_bytes, total_bytes) = match &self.copy_progress {
+            TransferProgress::DirTransfer(dir_progress) => {
+                (dir_progress.file_bytes_copied, dir_progress.total_bytes)
+            }
+            TransferProgress::FileTransfer(file_progress) => {
+                (file_progress.copied_bytes, file_progress.total_bytes)
+            }
+            TransferProgress::None => (0, 0),
+        };
         let dialog_area = Rect::new(area.x, area.y, area.width, area.height);
         let layout = Layout::default()
             .constraints([
@@ -208,7 +248,7 @@ impl CopyDialog {
             .borders(Borders::ALL);
 
         let current_file_label = Paragraph::new(Span::styled(
-            format!("Current: {}", self.copy_progress.file_name),
+            format!("Current: {}", file_name),
             Style::default().fg(Color::White),
         ));
         let dest_filename = self.destination.display().to_string();
@@ -226,8 +266,8 @@ impl CopyDialog {
         let label_remaining_size = Paragraph::new(Span::styled(
             format!(
                 "{}/{}",
-                SizeFormatter::new(self.copy_progress.copied_bytes, DECIMAL),
-                SizeFormatter::new(self.copy_progress.total_bytes, DECIMAL)
+                SizeFormatter::new(copied_bytes, DECIMAL),
+                SizeFormatter::new(total_bytes, DECIMAL)
             ),
             Style::default().fg(Color::White),
         ))
@@ -237,7 +277,7 @@ impl CopyDialog {
         let mins = (self.start_time.elapsed().as_secs() / 60) % 60;
         let hours = (self.start_time.elapsed().as_secs() / 60) / 60;
         let label_total_time = Paragraph::new(Span::styled(
-            format!("{}:{}:{}", hours, mins, secs),
+            format!("{}h:{}m:{}s", hours, mins, secs),
             Style::default().fg(Color::White),
         ))
         .alignment(Alignment::Center);
@@ -245,8 +285,8 @@ impl CopyDialog {
         let label_filesizes = Paragraph::new(Span::styled(
             format!(
                 "{}/{}",
-                SizeFormatter::new(self.copy_progress.file_bytes_copied, DECIMAL),
-                SizeFormatter::new(self.copy_progress.file_total_bytes, DECIMAL)
+                SizeFormatter::new(copied_bytes, DECIMAL),
+                SizeFormatter::new(total_bytes, DECIMAL)
             ),
             Style::default().fg(Color::White),
         ))
@@ -278,20 +318,41 @@ impl CopyDialog {
     }
 }
 
-fn copy_dir(from: PathBuf, to: PathBuf, tx: Sender<TransitProcess>) {
-    let mut options = CopyOptions::new();
+fn copy_dir(from: &PathBuf, to: &PathBuf, tx: Sender<TransferProgress>) {
+    let mut options = DirCopyOptions::new();
     options.buffer_size = 8 * 1024 * 1024; // TODO: configurable buffer, default is 1MB
-    let from_1 = from.clone();
-    let to_1 = to.clone();
+    let from = from.clone();
+    let to = to.clone();
 
     thread::spawn(move || {
-        let progress_handler = |progress_info: TransitProcess| {
-            if let Ok(_) = tx.send(progress_info) {}
+        let progress_handler = |progress_info: DirTransitProcess| {
+            if let Ok(_) = tx.send(TransferProgress::DirTransfer(progress_info)) {}
             fs_extra::dir::TransitProcessResult::ContinueOrAbort
         };
-        let _result = copy_with_progress(
-            AsRef::<Path>::as_ref(&from_1),
-            AsRef::<Path>::as_ref(&to_1),
+        let _result = copy_dir_with_progress(
+            AsRef::<Path>::as_ref(&from),
+            AsRef::<Path>::as_ref(&to),
+            &options,
+            progress_handler,
+        );
+    });
+}
+
+fn copy_file(from: &PathBuf, to: &PathBuf, tx: Sender<TransferProgress>) {
+    let mut options = fs_extra::file::CopyOptions::new();
+    options.buffer_size = 8 * 1024 * 1024; // TODO: configurable buffer, default is 1MB
+    let from = from.clone();
+    let file_name = from.file_name().unwrap();
+    let mut to = to.clone();
+    to.push(Path::new(file_name));
+
+    thread::spawn(move || {
+        let progress_handler = |progress_info: fs_extra::file::TransitProcess| {
+            if let Ok(_) = tx.send(TransferProgress::FileTransfer(progress_info)) {}
+        };
+        let _result = fs_extra::file::copy_with_progress(
+            AsRef::<Path>::as_ref(&from),
+            AsRef::<Path>::as_ref(&to),
             &options,
             progress_handler,
         );
