@@ -1,4 +1,7 @@
-use std::{io::Error, path::PathBuf};
+use std::{
+    io::Error,
+    path::{Path, PathBuf},
+};
 use termion::event::Key;
 use tui::{
     layout::Alignment,
@@ -39,12 +42,15 @@ pub struct MkDirDialog {
 }
 
 impl MkDirDialog {
-    pub fn new(parent_dir: PathBuf) -> Self {
+    pub fn new<P>(parent_dir: P) -> Self
+    where
+        P: AsRef<Path>,
+    {
         MkDirDialog {
             button: Buttons::Cancel,
             input: Input::default(),
             state: MkDirDialogState::WaitingForInput,
-            parent_dir,
+            parent_dir: PathBuf::from(parent_dir.as_ref()),
         }
     }
 
