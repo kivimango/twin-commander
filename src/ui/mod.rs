@@ -4,11 +4,13 @@ mod bottom_menu;
 mod dialog;
 mod menu;
 mod table;
+mod user_interface;
 
 pub use self::bottom_menu::*;
 pub use self::dialog::*;
 pub use self::menu::*;
 pub use self::table::*;
+pub use self::user_interface::UserInterface;
 
 /// Helper function to create a centered rect with a fixed height
 /// and using up certain percentage of the available of width of `r`.
