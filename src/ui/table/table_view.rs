@@ -230,7 +230,8 @@ impl TableView {
         self.sorter.sort(self.model.files_mut());
     }
 
-    pub fn _sort_by(&mut self, predicate: TableSortPredicate) {
+    /// Sorts the table by the new `predicate`.
+    pub fn sort_by(&mut self, predicate: TableSortPredicate) {
         self.sorter.set_predicate(predicate);
     }
 

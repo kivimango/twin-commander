@@ -1,6 +1,6 @@
 use super::{
     centered_rect, fixed_height_centered_rect, BottomMenu, CopyDialog, Menu, MkDirDialog,
-    RmDirDialog, TableView,
+    RmDirDialog, TableSortPredicate, TableView,
 };
 use crate::app::{Application, InputMode};
 use std::io::Stdout;
@@ -153,6 +153,12 @@ impl UserInterface {
                     ActivePanel::Left => self.left_panel.change_dir(),
                     ActivePanel::Right => self.right_panel.change_dir(),
                 },
+                // Tableview sorting
+                Key::Ctrl('n') => self.active_panel_mut().sort_by(TableSortPredicate::Name),
+                Key::Ctrl('l') => self
+                    .active_panel_mut()
+                    .sort_by(TableSortPredicate::LastModified),
+                Key::Ctrl('s') => self.active_panel_mut().sort_by(TableSortPredicate::Size),
                 // Bottom menu
                 // Copy file(s) dialog
                 Key::F(5) => {
@@ -249,6 +255,13 @@ impl UserInterface {
                 }
                 _ => {}
             }
+        }
+    }
+
+    fn active_panel_mut(&mut self) -> &mut TableView {
+        match &self.active_panel {
+            ActivePanel::Left => &mut self.left_panel,
+            ActivePanel::Right => &mut self.right_panel,
         }
     }
 
