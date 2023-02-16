@@ -235,7 +235,8 @@ impl TableView {
         self.sorter.set_predicate(predicate);
     }
 
-    pub fn _set_direction(&mut self, direction: TableSortDirection) {
+    /// Sorts the table by the new `direction`.
+    pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.sorter.set_direction(direction);
     }
 }
