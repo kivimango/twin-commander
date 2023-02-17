@@ -1,6 +1,6 @@
 use super::{
-    centered_rect, fixed_height_centered_rect, BottomMenu, CopyDialog, Menu, MkDirDialog,
-    RmDirDialog, TableSortDirection, TableSortPredicate, TableView,
+    centered_rect, fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MkDirDialog,
+    RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use std::io::Stdout;
@@ -28,7 +28,7 @@ impl ActivePanel {
 }
 
 enum Dialog {
-    Copy(CopyDialog),
+    Copy(TransferDialog<CopyStrategy>),
     MkDir(MkDirDialog),
     RmDir(RmDirDialog),
 }
@@ -272,19 +272,23 @@ impl UserInterface {
         }
     }
 
-    fn create_copy_dialog(&self) -> Result<CopyDialog, ShowDialogError> {
+    fn create_copy_dialog(&self) -> Result<TransferDialog<CopyStrategy>, ShowDialogError> {
         match &self.active_panel {
             ActivePanel::Left => return inner(&self.left_panel, &self.right_panel),
             ActivePanel::Right => return inner(&self.right_panel, &self.left_panel),
         }
 
-        fn inner(source: &TableView, target: &TableView) -> Result<CopyDialog, ShowDialogError> {
+        fn inner(
+            source: &TableView,
+            target: &TableView,
+        ) -> Result<TransferDialog<CopyStrategy>, ShowDialogError> {
             if let Some(selected_file) = source.get_selected_file() {
                 let source = selected_file.as_path();
                 let destination = target.pwd();
-                Ok(CopyDialog::new(
+                Ok(TransferDialog::new(
                     PathBuf::from(source),
                     PathBuf::from(destination),
+                    CopyStrategy,
                 ))
             } else {
                 Err(ShowDialogError::NoSelectedSource)
