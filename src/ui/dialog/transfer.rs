@@ -1,12 +1,10 @@
+use super::{TransferProgress, TransferStrategy};
 use crate::core::calculate_progress_percentage;
-use fs_extra::{
-    dir::TransitProcess as DirTransitProcess, file::TransitProcess as FileTransitProcess,
-};
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
     path::Path,
-    sync::mpsc::{Receiver, Sender, TryRecvError},
+    sync::mpsc::{Receiver, TryRecvError},
     time::Instant,
 };
 use std::{path::PathBuf, sync::mpsc};
@@ -19,31 +17,6 @@ use tui::{
     widgets::{Block, Borders, Gauge, Paragraph},
     Frame,
 };
-
-/// Abstraction of file transfers (copy/move) for reusing
-/// the same TransferDialog fo every different file transfers.
-pub trait TransferStrategy {
-    fn transfer_dir<P: AsRef<Path>>(
-        &mut self,
-        source: P,
-        destination: P,
-        tx: Sender<TransferProgress>,
-    );
-    fn transfer_file<P: AsRef<Path>>(
-        &mut self,
-        source: P,
-        destination: P,
-        tx: Sender<TransferProgress>,
-    );
-}
-
-// Convenient type for sending two different type of data through a channel:
-// dont need two distinct (tx,rx)
-pub enum TransferProgress {
-    DirTransfer(DirTransitProcess),
-    FileTransfer(FileTransitProcess),
-    None,
-}
 
 enum Buttons {
     Ok,
