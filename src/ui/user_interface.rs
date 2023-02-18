@@ -1,6 +1,6 @@
 use super::{
     centered_rect, fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MkDirDialog,
-    RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
+    MoveStrategy, RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use std::io::Stdout;
@@ -29,6 +29,7 @@ impl ActivePanel {
 
 enum Dialog {
     Copy(TransferDialog<CopyStrategy>),
+    Move(TransferDialog<MoveStrategy>),
     MkDir(MkDirDialog),
     RmDir(RmDirDialog),
 }
@@ -95,10 +96,15 @@ impl UserInterface {
             // render dialog on top of content if it has...
             if let Some(dialog) = &mut self.dialog {
                 match dialog {
-                    Dialog::Copy(cp_dialog) => {
+                    Dialog::Copy(transfer_dialog) => {
                         let area = fixed_height_centered_rect(50, 8, frame_size);
                         frame.render_widget(Clear, area);
-                        cp_dialog.render(frame, area);
+                        transfer_dialog.render(frame, area);
+                    }
+                    Dialog::Move(mv_dialog) => {
+                        let area = fixed_height_centered_rect(50, 8, frame_size);
+                        frame.render_widget(Clear, area);
+                        mv_dialog.render(frame, area);
                     }
                     Dialog::MkDir(mkdir_dialog) => {
                         let area = centered_rect(33, 20, frame_size);
@@ -176,6 +182,15 @@ impl UserInterface {
                     }
                     // show error message about no selection
                 }
+                // Move file(s) dialog
+                Key::F(6) => {
+                    if let Ok(move_dialog) = self.create_move_dialog() {
+                        self.dialog = Some(Dialog::Move(move_dialog));
+                        self.focused_widget = Widgets::Dialog;
+                        app.set_input_mode(InputMode::Editing);
+                    }
+                    // show error message about no selection
+                }
                 // Create directory dialog
                 Key::F(7) => {
                     let parent_dir = match &self.active_panel {
@@ -196,7 +211,7 @@ impl UserInterface {
                     // show error message about no selection
                 }
                 Key::F(9) => self.top_menu.select_next(),
-                _ => print!("unhandled key"),
+                _ => (),
             },
             InputMode::Editing => {
                 if let Some(dialog) = &mut self.dialog {
@@ -205,6 +220,11 @@ impl UserInterface {
                             Key::Char('\n') => copy_dialog.handle_key(key),
                             Key::Esc => self.close_dialog(app),
                             _ => copy_dialog.handle_key(key),
+                        },
+                        Dialog::Move(mv_dialog) => match key {
+                            Key::Char('\n') => mv_dialog.handle_key(key),
+                            Key::Esc => self.close_dialog(app),
+                            _ => mv_dialog.handle_key(key),
                         },
                         Dialog::MkDir(mkdir_dialog) => match key {
                             Key::Char('\n') => match mkdir_dialog.state() {
@@ -255,6 +275,12 @@ impl UserInterface {
                         self.close_dialog(app)
                     }
                 }
+                Dialog::Move(move_dialog) => {
+                    move_dialog.tick();
+                    if move_dialog.should_quit() {
+                        self.close_dialog(app)
+                    }
+                }
                 Dialog::RmDir(rm_dialog) => {
                     if rm_dialog.should_quit() {
                         self.close_dialog(app)
@@ -269,6 +295,30 @@ impl UserInterface {
         match &self.active_panel {
             ActivePanel::Left => &mut self.left_panel,
             ActivePanel::Right => &mut self.right_panel,
+        }
+    }
+
+    fn create_move_dialog(&self) -> Result<TransferDialog<MoveStrategy>, ShowDialogError> {
+        match &self.active_panel {
+            ActivePanel::Left => return inner(&self.left_panel, &self.right_panel),
+            ActivePanel::Right => return inner(&self.right_panel, &self.left_panel),
+        }
+
+        fn inner(
+            source: &TableView,
+            target: &TableView,
+        ) -> Result<TransferDialog<MoveStrategy>, ShowDialogError> {
+            if let Some(selected_file) = source.get_selected_file() {
+                let source = selected_file.as_path();
+                let destination = target.pwd();
+                Ok(TransferDialog::new(
+                    PathBuf::from(source),
+                    PathBuf::from(destination),
+                    MoveStrategy,
+                ))
+            } else {
+                Err(ShowDialogError::NoSelectedSource)
+            }
         }
     }
 
