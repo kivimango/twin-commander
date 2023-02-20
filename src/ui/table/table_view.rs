@@ -15,7 +15,23 @@ use tui::{
     Frame,
 };
 
-const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
+//const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
+
+const SORTED_BY_NAME_ASC: usize = 0;
+const SORTED_BY_SIZE_ASC: usize = 1;
+const SORTED_BY_LASTMODIFIED_ASC: usize = 2;
+const SORTED_BY_NAME_DESC: usize = 3;
+const SORTED_BY_SIZE_DESC: usize = 4;
+const SORTED_BY_LASTMODIFIED_DESC: usize = 5;
+
+const HEADER_LOOKUP_TABLE: [[&str; 3]; 6] = [
+    ["Name▼", "Size", "Last modified"],
+    ["Name", "Size▼", "Last modified"],
+    ["Name", "Size", "Last modified▼"],
+    ["Name▲", "Size", "Last modified"],
+    ["Name", "Size▲", "Last modified"],
+    ["Name", "Size", "Last modified▲"],
+];
 
 /// Displays a directory's content with details in a table format.
 pub struct TableView {
@@ -120,8 +136,7 @@ impl TableView {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .direction(tui::layout::Direction::Horizontal)
             .split(main_layout);
-
-        let header_cells = CELL_HEADERS.iter().map(|header| Cell::from(*header));
+        let header_cells = header_cells(self.sorter.get_predicate(), self.sorter.get_direction());
         let table_header = Row::new(header_cells).height(1);
         let mut file_list = Vec::new();
         let mut error = None;
@@ -239,4 +254,28 @@ impl TableView {
     pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.sorter.set_direction(direction);
     }
+}
+
+fn header_cells(
+    sorted_by: TableSortPredicate,
+    sort_order: TableSortDirection,
+) -> impl Iterator<Item = Cell<'static>> {
+    let header_lookup_index = match sorted_by {
+        TableSortPredicate::Name => match sort_order {
+            TableSortDirection::Ascending => SORTED_BY_NAME_ASC,
+            TableSortDirection::Descending => SORTED_BY_NAME_DESC,
+        },
+        TableSortPredicate::Size => match sort_order {
+            TableSortDirection::Ascending => SORTED_BY_SIZE_ASC,
+            TableSortDirection::Descending => SORTED_BY_SIZE_DESC,
+        },
+        TableSortPredicate::LastModified => match sort_order {
+            TableSortDirection::Ascending => SORTED_BY_LASTMODIFIED_ASC,
+            TableSortDirection::Descending => SORTED_BY_LASTMODIFIED_DESC,
+        },
+    };
+
+    HEADER_LOOKUP_TABLE[header_lookup_index]
+        .iter()
+        .map(|header| Cell::from(*header))
 }
