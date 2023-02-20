@@ -30,7 +30,7 @@ impl Default for TableSortDirection {
 }
 
 impl TableSortDirection {
-    /// Reversess the current sort order.
+    /// Reverses the current sort order.
     pub fn reverse(&mut self) {
         match self {
             TableSortDirection::Ascending => *self = TableSortDirection::Descending,
@@ -66,6 +66,14 @@ impl TableSorter {
             predicate,
             sorter: get_type_by(direction, predicate),
         }
+    }
+
+    pub(crate) fn get_direction(&self) -> TableSortDirection {
+        self.direction
+    }
+
+    pub(crate) fn get_predicate(&self) -> TableSortPredicate {
+        self.predicate
     }
 
     pub(crate) fn set_direction(&mut self, direction: TableSortDirection) {
@@ -109,7 +117,7 @@ pub enum TableSortPredicate {
 
 impl Default for TableSortPredicate {
     fn default() -> Self {
-        TableSortPredicate::Size
+        TableSortPredicate::Name
     }
 }
 
@@ -239,6 +247,19 @@ mod test {
     fn test_sort_direction_default() {
         let sort = TableSortDirection::default();
         assert_eq!(sort, TableSortDirection::Ascending);
+    }
+
+    #[test]
+    fn test_predicate_default() {
+        let predicate = TableSortPredicate::default();
+        assert_eq!(predicate, TableSortPredicate::Name);
+    }
+
+    #[test]
+    fn test_sorter_default() {
+        let sorter = TableSorter::new();
+        assert_eq!(sorter.get_direction(), TableSortDirection::Ascending);
+        assert_eq!(sorter.get_predicate(), TableSortPredicate::Name);
     }
 
     #[test]
