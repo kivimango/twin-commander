@@ -1,6 +1,6 @@
 use super::{
-    centered_rect, fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MkDirDialog,
-    MoveStrategy, RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
+    fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MkDirDialog, MoveStrategy,
+    RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use std::io::Stdout;
@@ -107,12 +107,12 @@ impl UserInterface {
                         mv_dialog.render(frame, area);
                     }
                     Dialog::MkDir(mkdir_dialog) => {
-                        let area = centered_rect(33, 20, frame_size);
+                        let area = fixed_height_centered_rect(33, 6, frame_size);
                         frame.render_widget(Clear, area);
                         frame.render_widget(mkdir_dialog.widget(), area);
                     }
                     Dialog::RmDir(rmdir_dialog) => {
-                        let area = fixed_height_centered_rect(33, 6, frame_size);
+                        let area = fixed_height_centered_rect(33, 7, frame_size);
                         frame.render_widget(Clear, area);
                         rmdir_dialog.render(frame, area);
                     }
