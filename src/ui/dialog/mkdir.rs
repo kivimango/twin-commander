@@ -1,5 +1,5 @@
 use std::{
-    io::Error,
+    io::{self},
     path::{Path, PathBuf},
 };
 use termion::event::Key;
@@ -29,7 +29,6 @@ impl Buttons {
 /// Represents the state of the dialog
 pub enum MkDirDialogState {
     WaitingForInput,
-    DirCreated,
     DisplayErrorMessage(String),
 }
 
@@ -37,6 +36,7 @@ pub enum MkDirDialogState {
 pub struct MkDirDialog {
     button: Buttons,
     input: Input,
+    hide: bool,
     parent_dir: PathBuf,
     state: MkDirDialogState,
 }
@@ -47,43 +47,52 @@ impl MkDirDialog {
         P: AsRef<Path>,
     {
         MkDirDialog {
-            button: Buttons::Cancel,
+            button: Buttons::Ok,
             input: Input::default(),
+            hide: false,
             state: MkDirDialogState::WaitingForInput,
             parent_dir: PathBuf::from(parent_dir.as_ref()),
         }
     }
 
-    pub fn create_dir(&mut self) -> Result<(), Error> {
+    pub fn create_dir(&mut self) -> io::Result<()> {
         let mut parent_dir = self.parent_dir.clone();
         parent_dir.push(self.input.value());
-        let result = std::fs::create_dir(parent_dir);
-        match result {
-            Ok(_) => {
-                self.state = MkDirDialogState::DirCreated;
-            }
-            Err(ref error) => {
-                self.state = MkDirDialogState::DisplayErrorMessage(error.to_string());
-            }
-        }
-        result
+        std::fs::create_dir(parent_dir)
     }
 
     pub fn handle_key(&mut self, key: Key) {
-        match key {
-            Key::Char(char) => {
-                if char.is_ascii_alphabetic() {
-                    self.input.handle(InputRequest::InsertChar(char));
+        match self.state {
+            MkDirDialogState::WaitingForInput => match key {
+                Key::Char('\n') => match self.button {
+                    Buttons::Ok => match self.create_dir() {
+                        Ok(_) => self.hide = true,
+                        Err(error) => {
+                            self.state = MkDirDialogState::DisplayErrorMessage(error.to_string())
+                        }
+                    },
+                    Buttons::Cancel => self.hide = true,
+                },
+                Key::Char(char) => {
+                    // TODO: regex for allowed chars in linux file names
+                    if char.is_alphanumeric() {
+                        self.input.handle(InputRequest::InsertChar(char));
+                    }
                 }
-            }
-            Key::Backspace => {
-                self.input.handle(InputRequest::DeletePrevChar);
-            }
-            Key::Delete => {
-                self.input.handle(InputRequest::DeleteNextChar);
-            }
-            Key::Right | Key::Left | Key::Up | Key::Down => self.button.next(),
-            _ => {}
+                Key::Backspace => {
+                    self.input.handle(InputRequest::DeletePrevChar);
+                }
+                Key::Delete => {
+                    self.input.handle(InputRequest::DeleteNextChar);
+                }
+                Key::Right | Key::Left | Key::Up | Key::Down => self.button.next(),
+                _ => {}
+            },
+            MkDirDialogState::DisplayErrorMessage(_) => match key {
+                Key::Char('\n') => self.state = MkDirDialogState::WaitingForInput,
+                Key::Esc => self.hide = true,
+                _ => {}
+            },
         }
     }
 
@@ -91,14 +100,13 @@ impl MkDirDialog {
     pub fn widget(&self) -> Paragraph {
         match &self.state {
             MkDirDialogState::WaitingForInput => self.display_input(),
-            MkDirDialogState::DisplayErrorMessage(msg) => self.display_error(&msg),
-            _ => self.display_input(),
+            MkDirDialogState::DisplayErrorMessage(msg) => self.display_error(msg),
         }
     }
 
-    /// Returns the current state of the dialog
-    pub fn state(&self) -> &MkDirDialogState {
-        &self.state
+    /// Signals that the dialog should be closed or not
+    pub fn should_hide(&self) -> bool {
+        self.hide
     }
 
     fn display_input(&self) -> Paragraph {

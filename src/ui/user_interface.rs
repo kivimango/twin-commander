@@ -227,18 +227,6 @@ impl UserInterface {
                             _ => mv_dialog.handle_key(key),
                         },
                         Dialog::MkDir(mkdir_dialog) => match key {
-                            Key::Char('\n') => match mkdir_dialog.state() {
-                                crate::ui::MkDirDialogState::WaitingForInput => {
-                                    if mkdir_dialog.create_dir().is_ok() {
-                                        self.close_dialog(app)
-                                    }
-                                    // show error message
-                                }
-                                crate::ui::MkDirDialogState::DisplayErrorMessage(_) => {
-                                    self.close_dialog(app)
-                                }
-                                crate::ui::MkDirDialogState::DirCreated => self.close_dialog(app),
-                            },
                             Key::Esc => self.close_dialog(app),
                             _ => mkdir_dialog.handle_key(key),
                         },
@@ -281,12 +269,16 @@ impl UserInterface {
                         self.close_dialog(app)
                     }
                 }
+                Dialog::MkDir(mk_dialog) => {
+                    if mk_dialog.should_hide() {
+                        self.close_dialog(app)
+                    }
+                }
                 Dialog::RmDir(rm_dialog) => {
                     if rm_dialog.should_quit() {
                         self.close_dialog(app)
                     }
                 }
-                _ => {}
             }
         }
     }
