@@ -442,4 +442,93 @@ mod test {
         });
         return files;
     }
+
+    #[test]
+    fn test_from_string_on_sort_direction_asc() {
+        let from_uppercase = String::from("ASC");
+        let direction = TableSortDirection::from(&from_uppercase);
+        assert_eq!(direction, TableSortDirection::Ascending);
+
+        let from_lowercase = String::from("asc");
+        let direction = TableSortDirection::from(&from_lowercase);
+        assert_eq!(direction, TableSortDirection::Ascending);
+
+        let mixed_case = String::from("AsC");
+        let direction = TableSortDirection::from(&mixed_case);
+        assert_eq!(direction, TableSortDirection::Ascending);
+    }
+
+    #[test]
+    fn test_from_string_on_sort_direction_desc() {
+        let from_uppercase = String::from("DESC");
+        let direction = TableSortDirection::from(&from_uppercase);
+        assert_eq!(direction, TableSortDirection::Descending);
+
+        let from_lowercase = String::from("desc");
+        let direction = TableSortDirection::from(&from_lowercase);
+        assert_eq!(direction, TableSortDirection::Descending);
+
+        let mixed_case = String::from("dEsC");
+        let direction = TableSortDirection::from(&mixed_case);
+        assert_eq!(direction, TableSortDirection::Descending);
+    }
+
+    #[test]
+    fn test_from_string_on_sort_direction_default() {
+        let invalid_value = String::from("notavalidvalue");
+        let direction = TableSortDirection::from(&invalid_value);
+        assert_eq!(direction, TableSortDirection::default());
+    }
+
+    #[test]
+    fn test_from_string_on_sort_predicate_name() {
+        let from_uppercase = String::from("NAME");
+        let predicate = TableSortPredicate::from(&from_uppercase);
+        assert_eq!(predicate, TableSortPredicate::Name);
+
+        let from_lowercase = String::from("name");
+        let predicate = TableSortPredicate::from(&from_lowercase);
+        assert_eq!(predicate, TableSortPredicate::Name);
+
+        let mixed_case = String::from("NaMe");
+        let predicate = TableSortPredicate::from(&mixed_case);
+        assert_eq!(predicate, TableSortPredicate::Name);
+    }
+
+    #[test]
+    fn test_from_string_on_sort_predicate_size() {
+        let from_uppercase = String::from("SIZE");
+        let predicate = TableSortPredicate::from(&from_uppercase);
+        assert_eq!(predicate, TableSortPredicate::Size);
+
+        let from_lowercase = String::from("size");
+        let predicate = TableSortPredicate::from(&from_lowercase);
+        assert_eq!(predicate, TableSortPredicate::Size);
+
+        let mixed_case = String::from("SiZe");
+        let predicate = TableSortPredicate::from(&mixed_case);
+        assert_eq!(predicate, TableSortPredicate::Size);
+    }
+
+    #[test]
+    fn test_from_string_on_sort_predicate_last_modified() {
+        let from_uppercase = String::from("MODIFIED");
+        let predicate = TableSortPredicate::from(&from_uppercase);
+        assert_eq!(predicate, TableSortPredicate::LastModified);
+
+        let from_lowercase = String::from("modified");
+        let predicate = TableSortPredicate::from(&from_lowercase);
+        assert_eq!(predicate, TableSortPredicate::LastModified);
+
+        let mixed_case = String::from("MoDiFiEd");
+        let predicate = TableSortPredicate::from(&mixed_case);
+        assert_eq!(predicate, TableSortPredicate::LastModified);
+    }
+
+    #[test]
+    fn test_from_string_on_sort_predicate_default() {
+        let invalid_input = String::from("invalidinput");
+        let predicate = TableSortPredicate::from(&invalid_input);
+        assert_eq!(predicate, TableSortPredicate::default());
+    }
 }
