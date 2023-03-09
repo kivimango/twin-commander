@@ -29,9 +29,23 @@ impl Default for TableSortDirection {
     }
 }
 
+impl From<&String> for TableSortDirection {
+    fn from(value: &String) -> Self {
+        let value = value.to_lowercase();
+        let value = value.as_str();
+        if value == "asc" {
+            TableSortDirection::Ascending
+        } else if value == "desc" {
+            TableSortDirection::Descending
+        } else {
+            TableSortDirection::default()
+        }
+    }
+}
+
 impl TableSortDirection {
     /// Reverses the current sort order.
-    pub fn reverse(&mut self) {
+    pub fn _reverse(&mut self) {
         match self {
             TableSortDirection::Ascending => *self = TableSortDirection::Descending,
             TableSortDirection::Descending => *self = TableSortDirection::Ascending,
@@ -56,11 +70,7 @@ impl Default for TableSorter {
 }
 
 impl TableSorter {
-    pub(crate) fn new() -> Self {
-        TableSorter::default()
-    }
-
-    pub(crate) fn _with(direction: TableSortDirection, predicate: TableSortPredicate) -> Self {
+    pub(crate) fn new(direction: TableSortDirection, predicate: TableSortPredicate) -> Self {
         TableSorter {
             direction,
             predicate,
@@ -118,6 +128,21 @@ pub enum TableSortPredicate {
 impl Default for TableSortPredicate {
     fn default() -> Self {
         TableSortPredicate::Name
+    }
+}
+
+impl From<&String> for TableSortPredicate {
+    fn from(value: &String) -> Self {
+        let value = value.to_lowercase();
+        if value == "name" {
+            TableSortPredicate::Name
+        } else if value == "size" {
+            TableSortPredicate::Size
+        } else if value == "modified" {
+            TableSortPredicate::LastModified
+        } else {
+            TableSortPredicate::default()
+        }
     }
 }
 
@@ -257,7 +282,7 @@ mod test {
 
     #[test]
     fn test_sorter_default() {
-        let sorter = TableSorter::new();
+        let sorter = TableSorter::default();
         assert_eq!(sorter.get_direction(), TableSortDirection::Ascending);
         assert_eq!(sorter.get_predicate(), TableSortPredicate::Name);
     }
@@ -267,8 +292,8 @@ mod test {
         let mut sort_asc = TableSortDirection::Ascending;
         let mut sort_desc = TableSortDirection::Descending;
 
-        sort_asc.reverse();
-        sort_desc.reverse();
+        sort_asc._reverse();
+        sort_desc._reverse();
 
         assert_eq!(sort_asc, TableSortDirection::Descending);
         assert_eq!(sort_desc, TableSortDirection::Ascending)
