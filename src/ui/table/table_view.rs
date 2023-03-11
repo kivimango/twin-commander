@@ -254,6 +254,14 @@ impl TableView {
         self.sorter.set_predicate(predicate);
     }
 
+    pub fn sort_direction(&self) -> TableSortDirection {
+        self.sorter.get_direction()
+    }
+
+    pub fn sort_predicate(&self) -> TableSortPredicate {
+        self.sorter.get_predicate()
+    }
+
     /// Sorts the table by the new `direction`.
     pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.sorter.set_direction(direction);
