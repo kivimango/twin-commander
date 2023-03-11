@@ -13,9 +13,9 @@ pub(crate) struct TableViewModel {
 }
 
 impl TableViewModel {
-    pub(crate) fn new() -> Self {
+    pub(crate) fn new<P: Into<PathBuf>>(start_path: P) -> Self {
         TableViewModel {
-            cwd: PathBuf::from("/"),
+            cwd: start_path.into(),
             files: Vec::new(),
             state: TableState::default(),
         }
