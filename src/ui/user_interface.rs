@@ -80,6 +80,14 @@ impl UserInterface {
         }
     }
 
+    pub(crate) fn left_table(&self) -> &TableView {
+        &self.left_panel
+    }
+
+    pub(crate) fn right_table(&self) -> &TableView {
+        &self.right_panel
+    }
+
     pub(crate) fn draw(&mut self, frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>) {
         let frame_size = frame.size();
         let layout = Layout::default()
