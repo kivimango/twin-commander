@@ -1,3 +1,4 @@
+pub mod config;
 pub mod list_dir;
 
 pub fn calculate_progress_percentage(partial_bytes: u64, total_bytes: u64) -> u64 {
