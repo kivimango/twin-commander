@@ -43,6 +43,15 @@ impl From<&String> for TableSortDirection {
     }
 }
 
+impl Into<String> for TableSortDirection {
+    fn into(self) -> String {
+        match self {
+            TableSortDirection::Ascending => String::from("asc"),
+            TableSortDirection::Descending => String::from("desc"),
+        }
+    }
+}
+
 impl TableSortDirection {
     /// Reverses the current sort order.
     pub fn _reverse(&mut self) {
@@ -142,6 +151,16 @@ impl From<&String> for TableSortPredicate {
             TableSortPredicate::LastModified
         } else {
             TableSortPredicate::default()
+        }
+    }
+}
+
+impl Into<String> for TableSortPredicate {
+    fn into(self) -> String {
+        match self {
+            TableSortPredicate::Name => String::from("name"),
+            TableSortPredicate::Size => String::from("size"),
+            TableSortPredicate::LastModified => String::from("modified"),
         }
     }
 }
@@ -530,5 +549,27 @@ mod test {
         let invalid_input = String::from("invalidinput");
         let predicate = TableSortPredicate::from(&invalid_input);
         assert_eq!(predicate, TableSortPredicate::default());
+    }
+
+    #[test]
+    fn test_into_string_on_sort_direction() {
+        let direction_asc = TableSortDirection::Ascending;
+        let direction_desc = TableSortDirection::Descending;
+        let into_asc: String = direction_asc.into();
+        let into_desc: String = direction_desc.into();
+
+        assert_eq!(into_asc, String::from("asc"));
+        assert_eq!(into_desc, String::from("desc"));
+    }
+
+    #[test]
+    fn test_into_string_on_sort_predicate() {
+        let name: String = TableSortPredicate::Name.into();
+        let size: String = TableSortPredicate::Size.into();
+        let last_modified: String = TableSortPredicate::LastModified.into();
+
+        assert_eq!(name, String::from("name"));
+        assert_eq!(size, String::from("size"));
+        assert_eq!(last_modified, String::from("modified"));
     }
 }
