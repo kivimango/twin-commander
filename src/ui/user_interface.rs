@@ -3,8 +3,10 @@ use super::{
     RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
+use crate::core::config::Configuration;
 use std::io::Stdout;
 use std::path::PathBuf;
+use std::rc::Rc;
 use termion::event::Key;
 use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
@@ -50,6 +52,7 @@ enum ShowDialogError {
 /// * and the bottom menu: file operations
 pub struct UserInterface {
     active_panel: ActivePanel,
+    _config: Rc<Configuration>,
     dialog: Option<Dialog>,
     top_menu: Menu,
     left_panel: TableView,
@@ -59,16 +62,19 @@ pub struct UserInterface {
 }
 
 impl UserInterface {
-    pub(crate) fn new() -> Self {
-        let mut left_panel = TableView::new();
+    pub(crate) fn new(config: &Rc<Configuration>) -> Self {
+        let left_table_config = config.left_table_config();
+        let right_table_config = config.right_table_config();
+        let mut left_panel = TableView::new(left_table_config);
         left_panel.activate();
 
         UserInterface {
             active_panel: ActivePanel::Left,
+            _config: config.clone(),
             dialog: None,
             top_menu: Menu::new(),
             left_panel,
-            right_panel: TableView::new(),
+            right_panel: TableView::new(right_table_config),
             bottom_menu: BottomMenu::new(),
             focused_widget: Widgets::TwinPanel,
         }
