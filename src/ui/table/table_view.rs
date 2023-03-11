@@ -1,6 +1,7 @@
 use super::{
     centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate, TableSorter,
 };
+use crate::core::config::TableConfiguration;
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
@@ -41,12 +42,15 @@ pub struct TableView {
 }
 
 impl TableView {
-    /// Creates a new TableView instance with sane defaults.
-    pub fn new() -> Self {
+    /// Creates a new TableView instance with the provided configuration.
+    pub fn new(table_config: &TableConfiguration) -> Self {
         TableView {
-            model: TableViewModel::new(),
+            model: TableViewModel::new(table_config.path()),
             is_active: false,
-            sorter: TableSorter::default(),
+            sorter: TableSorter::new(
+                TableSortDirection::from(table_config.sort_direction()),
+                TableSortPredicate::from(table_config.sort_predicate()),
+            ),
         }
     }
 
