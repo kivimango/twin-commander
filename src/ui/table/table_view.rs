@@ -181,14 +181,16 @@ impl TableView {
                 .add_modifier(Modifier::REVERSED),
         };
         let cwd = String::from(self.model.pwd().to_str().unwrap());
+        let name_column_width = table_layout[0].width - 3 - (8 + 16);
+        let widths = [
+            Constraint::Length(name_column_width),
+            Constraint::Length(8),
+            Constraint::Length(16),
+        ];
 
         let table_view = Table::new(file_list)
             .block(Block::default().title(cwd).borders(Borders::ALL))
-            .widths(&[
-                Constraint::Percentage(70),
-                Constraint::Percentage(10),
-                Constraint::Percentage(20),
-            ])
+            .widths(&widths)
             .header(table_header)
             .highlight_style(selected_style)
             .style(Style::default().bg(Color::LightBlue).fg(Color::White))
