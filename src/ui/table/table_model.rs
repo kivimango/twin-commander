@@ -31,11 +31,16 @@ impl TableViewModel {
 
     /// Changes `self.cwd` to the currently selected subdirectory or
     /// for the parent of `self.cwd` if it has any.
-    /// Returns `Err` when there is no selection, `Ok` otherwise.
+    /// Returns `Err` when there is no selection,
+    /// or the selected item is a file, `Ok` otherwise.
     /// For setting the current working directory for completely different path than `self.cwd`,
     /// use the `set_cwd()` method.
     pub(crate) fn cd(&mut self) -> Result<(), ()> {
         if let Some(selected) = self.selected() {
+            if !self.files[selected].is_dir {
+                return Err(());
+            }
+
             // the selected item is the parent of the cwd, go back up
             if selected == 0 {
                 // the cwd is not the root dir
