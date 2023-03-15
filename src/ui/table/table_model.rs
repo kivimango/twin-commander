@@ -23,28 +23,47 @@ impl TableViewModel {
 
     pub(crate) fn cd(&mut self) {
         if let Some(selected) = self.selected() {
-            self.reset_selection();
+            //self.reset_selection();
             // the selected item is the parent of the cwd, go back up
             if selected == 0 {
                 // the cwd is not the root dir
-                if let Some(parent) = self.pwd().parent() {
+                if let Some(parent) = self.cwd.parent() {
+                    // remember current dir name before switching working dir
+                    let current_dir = PathBuf::from(&self.cwd);
+                    let current_dir = current_dir.file_name();
+
                     self.set_cwd(parent.to_path_buf());
-                    self.list();
+                    if self.list().is_ok() {
+                        //self.sort();
+                        self.push_parent_front();
+
+                        // select previous dir
+                        if let Some(current_dir_name) = current_dir {
+                            if let Some(previous_dir_index) = self
+                                .files()
+                                .iter()
+                                .filter(|f| f.is_dir)
+                                .position(|f| f.name.as_str().eq(current_dir_name))
+                            {
+                                self.select(previous_dir_index);
+                            } else {
+                                self.select(0);
+                            }
+                        }
+                    }
                 }
             }
             // change into the selected dir
             else {
-                if let Some(file) = self.model.get_file(selected) {
-                    let mut new_path = PathBuf::from(&self.model.pwd());
+                if let Some(file) = self.get_file(selected) {
+                    let mut new_path = PathBuf::from(&self.cwd);
                     let dir_name = PathBuf::from(&file.name);
                     new_path.push(dir_name);
-                    self.model.set_cwd(new_path);
-                    let _ = self.model.list();
+                    self.set_cwd(new_path);
+                    let _ = self.list();
+                    self.select(0);
                 }
             }
-            self.sort();
-            self.model.push_parent_front();
-            self.select_first();
         }
     }
 
