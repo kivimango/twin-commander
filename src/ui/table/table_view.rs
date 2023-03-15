@@ -67,30 +67,7 @@ impl TableView {
     }
 
     pub fn change_dir(&mut self) {
-        if let Some(selected) = self.model.selected() {
-            self.model.reset_selection();
-            // the selected item is the parent of the cwd, go back up
-            if selected == 0 {
-                // the cwd is not the root dir
-                if let Some(parent) = self.model.pwd().parent() {
-                    self.model.set_cwd(parent.to_path_buf());
-                    let _ = self.model.list();
-                }
-            }
-            // change into the selected dir
-            else {
-                if let Some(file) = self.model.get_file(selected) {
-                    let mut new_path = PathBuf::from(&self.model.pwd());
-                    let dir_name = PathBuf::from(&file.name);
-                    new_path.push(dir_name);
-                    self.model.set_cwd(new_path);
-                    let _ = self.model.list();
-                }
-            }
-            self.sort();
-            self.model.push_parent_front();
-            self.select_first();
-        }
+        self.model.cd();
     }
 
     /*pub fn get_selection(&self) -> Option<usize> {
