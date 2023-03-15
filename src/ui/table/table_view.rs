@@ -38,19 +38,14 @@ const HEADER_LOOKUP_TABLE: [[&str; 3]; 6] = [
 pub struct TableView {
     model: TableViewModel,
     is_active: bool,
-    sorter: TableSorter,
 }
 
 impl TableView {
     /// Creates a new TableView instance with the provided configuration.
     pub fn new(table_config: &TableConfiguration) -> Self {
         TableView {
-            model: TableViewModel::new(table_config.path()),
+            model: TableViewModel::new(&table_config),
             is_active: false,
-            sorter: TableSorter::new(
-                TableSortDirection::from(table_config.sort_direction()),
-                TableSortPredicate::from(table_config.sort_predicate()),
-            ),
         }
     }
 
@@ -117,7 +112,7 @@ impl TableView {
             .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .direction(tui::layout::Direction::Horizontal)
             .split(main_layout);
-        let header_cells = header_cells(self.sorter.get_predicate(), self.sorter.get_direction());
+        let header_cells = header_cells(self.model.sort_predicate(), self.model.sort_direction());
         let table_header = Row::new(header_cells).height(1);
         let mut file_list = Vec::new();
         let mut error = None;
@@ -223,25 +218,25 @@ impl TableView {
     }
 
     pub fn sort(&mut self) {
-        self.sorter.sort(self.model.files_mut());
+        self.model.sort();
     }
 
     /// Sorts the table by the new `predicate`.
     pub fn sort_by(&mut self, predicate: TableSortPredicate) {
-        self.sorter.set_predicate(predicate);
+        self.model.set_sort_predicate(predicate);
     }
 
     pub fn sort_direction(&self) -> TableSortDirection {
-        self.sorter.get_direction()
+        self.model.sort_direction()
     }
 
     pub fn sort_predicate(&self) -> TableSortPredicate {
-        self.sorter.get_predicate()
+        self.model.sort_predicate()
     }
 
     /// Sorts the table by the new `direction`.
     pub fn set_direction(&mut self, direction: TableSortDirection) {
-        self.sorter.set_direction(direction);
+        self.model.set_sort_direction(direction);
     }
 }
 

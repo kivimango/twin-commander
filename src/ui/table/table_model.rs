@@ -1,23 +1,31 @@
-use tui::widgets::TableState;
-
-use crate::core::list_dir::{list_dir, DirContent};
+use super::{TableSortDirection, TableSortPredicate, TableSorter};
+use crate::core::{
+    config::TableConfiguration,
+    list_dir::{list_dir, DirContent},
+};
 use std::{
     io::Error,
     path::{Path, PathBuf},
 };
+use tui::widgets::TableState;
 
 pub(crate) struct TableViewModel {
     cwd: PathBuf,
     files: Vec<DirContent>,
     state: TableState,
+    sorter: TableSorter,
 }
 
 impl TableViewModel {
-    pub(crate) fn new<P: Into<PathBuf>>(start_path: P) -> Self {
+    pub(crate) fn new(table_config: &TableConfiguration) -> Self {
         TableViewModel {
-            cwd: start_path.into(),
+            cwd: table_config.path().clone(),
             files: Vec::new(),
             state: TableState::default(),
+            sorter: TableSorter::new(
+                TableSortDirection::from(table_config.sort_direction()),
+                TableSortPredicate::from(table_config.sort_predicate()),
+            ),
         }
     }
 
@@ -71,10 +79,6 @@ impl TableViewModel {
         &self.files
     }
 
-    pub(crate) fn files_mut(&mut self) -> &mut Vec<DirContent> {
-        &mut self.files
-    }
-
     pub(crate) fn list(&mut self) -> Result<(), Error> {
         match list_dir(&self.cwd) {
             Ok(files) => {
@@ -87,10 +91,6 @@ impl TableViewModel {
 
     pub(crate) fn get_file(&self, index: usize) -> Option<&DirContent> {
         self.files.get(index)
-    }
-
-    pub(crate) fn get_file_mut(&mut self, index: usize) -> Option<&mut DirContent> {
-        self.files.get_mut(index)
     }
 
     pub(crate) fn pwd(&self) -> &Path {
@@ -154,6 +154,26 @@ impl TableViewModel {
             None => 0,
         };
         self.state.select(Some(i));
+    }
+
+    pub(crate) fn sort(&mut self) {
+        self.sorter.sort(&mut self.files);
+    }
+
+    pub(crate) fn sort_direction(&self) -> TableSortDirection {
+        self.sorter.get_direction()
+    }
+
+    pub(crate) fn set_sort_direction(&mut self, direction: TableSortDirection) {
+        self.sorter.set_direction(direction)
+    }
+
+    pub(crate) fn sort_predicate(&self) -> TableSortPredicate {
+        self.sorter.get_predicate()
+    }
+
+    pub(crate) fn set_sort_predicate(&mut self, predicate: TableSortPredicate) {
+        self.sorter.set_predicate(predicate)
     }
 
     pub(crate) fn state_mut(&mut self) -> &mut TableState {
