@@ -1,6 +1,4 @@
-use super::{
-    centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate, TableSorter,
-};
+use super::{centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
 use crate::core::config::TableConfiguration;
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
@@ -62,7 +60,29 @@ impl TableView {
     }
 
     pub fn change_dir(&mut self) {
-        self.model.cd();
+        // remember current dir name before switching working dir
+        let current_dir = PathBuf::from(self.model.pwd());
+        let current_dir = current_dir.file_name();
+
+        if self.model.cd().is_ok() && self.model.list().is_ok() {
+            self.model.sort();
+            self.model.push_parent_front();
+
+            // select previous dir
+            if let Some(current_dir_name) = current_dir {
+                if let Some(previous_dir_index) = self
+                    .model
+                    .files()
+                    .iter()
+                    .filter(|f| f.is_dir)
+                    .position(|f| f.name.as_str().eq(current_dir_name))
+                {
+                    self.model.select(previous_dir_index);
+                } else {
+                    self.select_first();
+                }
+            }
+        }
     }
 
     /*pub fn get_selection(&self) -> Option<usize> {

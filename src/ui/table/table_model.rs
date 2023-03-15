@@ -29,50 +29,40 @@ impl TableViewModel {
         }
     }
 
-    pub(crate) fn cd(&mut self) {
+    /// Changes `self.cwd` to the currently selected subdirectory or
+    /// for the parent of `self.cwd` if it has any.
+    /// Returns `Err` when there is no selection, `Ok` otherwise.
+    /// For setting the current working directory for completely different path than `self.cwd`,
+    /// use the `set_cwd()` method.
+    pub(crate) fn cd(&mut self) -> Result<(), ()> {
         if let Some(selected) = self.selected() {
-            //self.reset_selection();
             // the selected item is the parent of the cwd, go back up
             if selected == 0 {
                 // the cwd is not the root dir
                 if let Some(parent) = self.cwd.parent() {
-                    // remember current dir name before switching working dir
-                    let current_dir = PathBuf::from(&self.cwd);
-                    let current_dir = current_dir.file_name();
-
                     self.set_cwd(parent.to_path_buf());
-                    if self.list().is_ok() {
-                        //self.sort();
-                        self.push_parent_front();
-
-                        // select previous dir
-                        if let Some(current_dir_name) = current_dir {
-                            if let Some(previous_dir_index) = self
-                                .files()
-                                .iter()
-                                .filter(|f| f.is_dir)
-                                .position(|f| f.name.as_str().eq(current_dir_name))
-                            {
-                                self.select(previous_dir_index);
-                            } else {
-                                self.select(0);
-                            }
-                        }
-                    }
+                    return Ok(());
                 }
+                // cannot go higher than root
+                return Err(());
             }
             // change into the selected dir
             else {
                 if let Some(file) = self.get_file(selected) {
-                    let mut new_path = PathBuf::from(&self.cwd);
+                    /*let mut new_path = PathBuf::from(&self.cwd);
                     let dir_name = PathBuf::from(&file.name);
                     new_path.push(dir_name);
-                    self.set_cwd(new_path);
+                    self.set_cwd(new_path);*/
+                    self.cwd.push::<PathBuf>(file.name.clone().into());
                     let _ = self.list();
                     self.select(0);
+                    return Ok(());
                 }
+                return Err(());
             }
         }
+        // no selected dir to change
+        Err(())
     }
 
     pub(crate) fn files(&self) -> &Vec<DirContent> {
