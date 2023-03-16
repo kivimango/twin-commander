@@ -42,7 +42,7 @@ impl TableView {
     /// Creates a new TableView instance with the provided configuration.
     pub fn new(table_config: &TableConfiguration) -> Self {
         TableView {
-            model: TableViewModel::new(&table_config),
+            model: TableViewModel::new(table_config),
             is_active: false,
         }
     }
@@ -101,13 +101,11 @@ impl TableView {
     pub fn get_selected_file(&self) -> Option<PathBuf> {
         if let Some(idx) = self.model.selected() {
             if let Some(file) = self.model.files().get(idx) {
-                return Some(self.pwd().join(file.name.clone()).to_path_buf());
-            } else {
-                return None;
+                let path = self.pwd().join(file.name.as_str());
+                return Some(path);
             }
-        } else {
-            return None;
         }
+        None
     }
 
     pub fn has_selection(&self) -> bool {
