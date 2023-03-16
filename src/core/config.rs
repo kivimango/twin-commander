@@ -126,7 +126,7 @@ pub fn try_load_from_file() -> Result<Configuration, Box<dyn std::error::Error>>
 pub fn try_save_to_file(config: &Configuration) -> Result<(), Box<dyn std::error::Error>> {
     let config_file_path = config_file_path();
     let config_serialized = toml::to_string(&config)?;
-    std::fs::write(&config_file_path, &config_serialized)?;
+    std::fs::write(config_file_path, config_serialized)?;
     Ok(())
 }
 
