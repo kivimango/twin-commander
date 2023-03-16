@@ -43,9 +43,9 @@ impl From<&String> for TableSortDirection {
     }
 }
 
-impl Into<String> for TableSortDirection {
-    fn into(self) -> String {
-        match self {
+impl From<TableSortDirection> for String {
+    fn from(value: TableSortDirection) -> Self {
+        match value {
             TableSortDirection::Ascending => String::from("asc"),
             TableSortDirection::Descending => String::from("desc"),
         }
@@ -155,9 +155,9 @@ impl From<&String> for TableSortPredicate {
     }
 }
 
-impl Into<String> for TableSortPredicate {
-    fn into(self) -> String {
-        match self {
+impl From<TableSortPredicate> for String {
+    fn from(value: TableSortPredicate) -> Self {
+        match value {
             TableSortPredicate::Name => String::from("name"),
             TableSortPredicate::Size => String::from("size"),
             TableSortPredicate::LastModified => String::from("modified"),
