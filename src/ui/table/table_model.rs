@@ -78,7 +78,7 @@ impl TableViewModel {
         match list_dir(&self.cwd) {
             Ok(files) => {
                 self.files = files;
-                return Ok(());
+                Ok(())
             }
             Err(err) => Err(err),
         }
@@ -114,7 +114,7 @@ impl TableViewModel {
     }
 
     pub(crate) fn select(&mut self, index: usize) {
-        if let Some(_) = self.files.get(index) {
+        if self.files.get(index).is_some() {
             self.state.select(Some(index));
         }
     }
@@ -181,7 +181,7 @@ impl TableViewModel {
         }
     }
 
-    pub(crate) fn reset_selection(&mut self) {
+    pub(crate) fn _reset_selection(&mut self) {
         self.state.select(None);
     }
 }
