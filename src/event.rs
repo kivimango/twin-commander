@@ -1,6 +1,6 @@
 use std::{
     io,
-    sync::mpsc::{self, Receiver},
+    sync::mpsc::{self},
     thread,
     time::Duration,
 };
@@ -22,14 +22,14 @@ pub enum Event<I> {
 /// Listent for key presses on the terminal,
 /// and produces Events through a channel that can be consumed by the application.
 pub struct Events {
-    _tx: mpsc::Sender<Event<Key>>,
-    //rx: mpsc::Receiver<Event<Key>>,
+    //_tx: mpsc::Sender<Event<Key>>,
+    rx: mpsc::Receiver<Event<Key>>,
 }
 
 impl Events {
     /// Creates a new Events instance that listens to key presses on a separate thread.
     /// It sends events through a channel back to the main thread for processing.
-    pub fn new(tr: Option<u64>) -> Receiver<Event<Key>> {
+    pub fn new(tr: Option<u64>) -> Self {
         let tick_rate = match tr {
             Some(tick_rate) => Duration::from_millis(tick_rate),
             None => Duration::from_millis(DEFAULT_TICK_RATE),
@@ -56,11 +56,11 @@ impl Events {
             }
             thread::sleep(tick_rate);
         });
-        rx
+        Events { rx }
     }
 
-    /*/// Attempts to read an event from the channel in a blocking way.
-    pub fn next(&self) -> Result<Event<Key>, mpsc::RecvError> {
+    /// Attempts to read an event from the channel in a blocking way.
+    pub fn recv(&self) -> Result<Event<Key>, mpsc::RecvError> {
         self.rx.recv()
-    }*/
+    }
 }
