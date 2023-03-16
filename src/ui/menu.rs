@@ -90,7 +90,7 @@ impl Menu {
 
         if let Some(selected) = &self.selected {
             menu = Tabs::new(menu_items)
-                .select(selected.clone().into())
+                .select(selected.into())
                 .style(Style::default().bg(Color::Cyan))
                 .highlight_style(Style::default().fg(Color::White).bg(Color::Black))
                 .divider(Span::raw(" "));
