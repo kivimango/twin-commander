@@ -93,15 +93,13 @@ fn get_config() -> Configuration {
             };
             default_config
         }
+    } else if let Err(_error) = config::create_config_dir() {
+        //TODO: log error
+        default_config
     } else {
-        if let Err(_error) = config::create_config_dir() {
-            //TODO: log error
-            default_config
-        } else {
-            match config::try_save_to_file(&default_config) {
-                Ok(_) => default_config,
-                Err(_) => default_config,
-            }
+        match config::try_save_to_file(&default_config) {
+            Ok(_) => default_config,
+            Err(_) => default_config,
         }
     }
 }
@@ -109,10 +107,10 @@ fn get_config() -> Configuration {
 fn save_config(config: &Configuration) {
     if !config::is_dir_exists() {
         if config::create_config_dir().is_ok() {
-            let _ = try_save_to_file(&config);
+            let _ = try_save_to_file(config);
         }
     } else {
-        let _ = try_save_to_file(&config);
+        let _ = try_save_to_file(config);
     }
 }
 
