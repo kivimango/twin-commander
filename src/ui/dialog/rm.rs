@@ -54,20 +54,21 @@ impl RmDirDialog {
 
     pub fn handle_keys(&mut self, key: Key) {
         match key {
-            Key::Char('\n') => match self.dialog_state {
-                DeleteDialogState::WaitingForConfirmation => match self.focused_button {
-                    Buttons::Ok => {
-                        self.dialog_state = DeleteDialogState::Deleting;
-                        delete_files(&self.files);
-                        self.dialog_state = DeleteDialogState::Deleted;
-                        self.should_quit = true;
+            Key::Char('\n') => {
+                if let DeleteDialogState::WaitingForConfirmation = self.dialog_state {
+                    match self.focused_button {
+                        Buttons::Ok => {
+                            self.dialog_state = DeleteDialogState::Deleting;
+                            delete_files(&self.files);
+                            self.dialog_state = DeleteDialogState::Deleted;
+                            self.should_quit = true;
+                        }
+                        Buttons::Cancel => {
+                            self.should_quit = true;
+                        }
                     }
-                    Buttons::Cancel => {
-                        self.should_quit = true;
-                    }
-                },
-                _ => {}
-            },
+                }
+            }
             Key::Char('\t') | Key::Right | Key::Left | Key::Up | Key::Down => {
                 self.focused_button.next()
             }
@@ -169,7 +170,7 @@ impl RmDirDialog {
                 String::from("Are you sure you want to delete this ?")
             }
         } else {
-            String::from(format!("Are you sure you want to delete {} items ?", count))
+            format!("Are you sure you want to delete {} items ?", count)
         }
     }
 
