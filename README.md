@@ -1,5 +1,7 @@
 # twin-commander
 
+![ci-status](https://github.com/kivimango/twin-commander/actions/workflows/ci.yaml/badge.svg "CI Badge")
+
 A text mode twin-panel file manager for Redox OS inspired by Midnight and Total Commander.
 
 ![Alt text](https://raw.github.com/kivimango/twin-commander/master/res/twc_preview_1.png "Preview")
