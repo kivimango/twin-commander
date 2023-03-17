@@ -10,7 +10,7 @@ A text mode twin-panel file manager for Redox OS inspired by Midnight and Total 
 
 This is my pet project for learning the Rust programming language.
 I develop this application to be my daily driver for managing files and for showcase some custom programs written in Rust and fill the gaps of the lacking/missing applications in the userspace for the Redox OS.
-If you are a fan of 'Lets Reimplement The Whole Universe in Rust' too, stay with me :)
+If you are a fan of 'Lets Reimplement The Whole Universe in Rust' too, stay with me
 
 ## Features
 
@@ -18,8 +18,12 @@ If you are a fan of 'Lets Reimplement The Whole Universe in Rust' too, stay with
 - compact, small footprint (memory usage around ~3 MB, final binary size ~ 700kb)
 
 See the [Issues](https://github.com/kivimango/twin-commander/issues) for upcoming features, like:
-[ ] Themes
-[ ] Plugins
+
+- Themes
+- Archives support
+- Remote protocols
+- Plugins
+
 and many more (who knows?)
 
 ## Supported platforms
@@ -43,31 +47,54 @@ Clone the repository:
 git clone  https://github.com/kivimango/twin-commander.git
 ```
 
-or download the tarball:
+or using the tarball:
 
 ```sh
+# Download the tarball
 wget https://github.com/kivimango/twin-commander/archive/refs/heads/master.zip
 
-```
-
-and unzip it with
-
-```sh
+# Unzip it
 unzip master.zip
-```
 
-and make your way into the project's folder with
-
-```sh
+# and make your way into the project's folder with
 cd twin-commander
 ```
 
+## Building from source
+
+Please refer the Getting started section.
+Once your local copy of the project is set up, you can build the project from source by running the
+
+```sh
+# for debug mode
+cargo build
+```
+
+or the
+
+```sh
+# for release mode
+cargo build -r
+```
+
+command.
+
 ## Installation
+
+Im planning releasing on crates.io once a MVP is ready.
+
+When it is published,  the following command
+
+```sh
+cargo install twin-commander
+```
+
+will install a binary of this application.
 
 ## Development
 
 Want to contribute? Great!
 
-## Building for source
-
 ## License
+
+Apache License 2.0
