@@ -64,9 +64,15 @@ impl TableView {
         let current_dir = PathBuf::from(self.model.pwd());
         let current_dir = current_dir.file_name();
 
+        //self.model._reset_selection();
+
         if self.model.cd().is_ok() && self.model.list().is_ok() {
             self.model.sort();
             self.model.push_parent_front();
+
+            if self.model.files().len() > 1 {
+                self.model._reset_selection();
+            }
 
             // select previous dir
             if let Some(current_dir_name) = current_dir {

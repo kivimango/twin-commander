@@ -37,8 +37,10 @@ impl TableViewModel {
     /// use the `set_cwd()` method.
     pub(crate) fn cd(&mut self) -> Result<(), ()> {
         if let Some(selected) = self.selected() {
-            if !self.files[selected].is_dir {
-                return Err(());
+            if let Some(selected_item) = self.files.get(selected) {
+                if !selected_item.is_dir {
+                    return Err(());
+                }
             }
 
             // the selected item is the parent of the cwd, go back up
