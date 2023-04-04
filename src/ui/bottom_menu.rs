@@ -1,6 +1,6 @@
 use std::io::Stdout;
 use termion::raw::RawTerminal;
-use tui::{backend::TermionBackend, layout::{Rect}, Frame};
+use tui::{backend::TermionBackend, layout::Rect, Frame};
 
 pub struct BottomMenu {}
 
