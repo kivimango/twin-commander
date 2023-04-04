@@ -68,6 +68,12 @@ impl TableView {
             self.model.sort();
             self.model.push_parent_front();
 
+            let file_count = self.model.files().len();
+            if file_count <= 1 {
+                self.select_first();
+                return;
+            }
+
             // select previous dir
             if let Some(current_dir_name) = current_dir {
                 if let Some(previous_dir_index) = self
@@ -77,7 +83,9 @@ impl TableView {
                     .filter(|f| f.is_dir)
                     .position(|f| f.name.as_str().eq(current_dir_name))
                 {
-                    self.model.select(previous_dir_index);
+                    if previous_dir_index <= file_count {
+                        self.model.select(previous_dir_index);
+                    }
                 } else {
                     self.select_first();
                 }
