@@ -12,6 +12,7 @@ use tui::widgets::TableState;
 pub(crate) struct TableViewModel {
     cwd: PathBuf,
     files: Vec<DirContent>,
+    last_error: Option<Error>,
     state: TableState,
     sorter: TableSorter,
 }
@@ -21,6 +22,7 @@ impl TableViewModel {
         TableViewModel {
             cwd: table_config.path().clone(),
             files: Vec::new(),
+            last_error: None,
             state: TableState::default(),
             sorter: TableSorter::new(
                 TableSortDirection::from(table_config.sort_direction()),
@@ -82,12 +84,20 @@ impl TableViewModel {
                 self.files = files;
                 Ok(())
             }
-            Err(err) => Err(err),
+            Err(err) => {
+                //self.last_error = Some(err);
+                Err(std::io::Error::from(err))
+            }
         }
     }
 
     pub(crate) fn get_file(&self, index: usize) -> Option<&DirContent> {
         self.files.get(index)
+    }
+
+    /// Returns the last encountered error during listing a directory's content if it had.
+    pub fn last_error(&self) -> &Option<Error> {
+        &self.last_error
     }
 
     pub(crate) fn pwd(&self) -> &Path {
