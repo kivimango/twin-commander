@@ -1,5 +1,5 @@
 use super::{centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
-use crate::core::config::TableConfiguration;
+use crate::{core::config::TableConfiguration, ui::RenderWidget};
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
@@ -41,8 +41,11 @@ pub struct TableView {
 impl TableView {
     /// Creates a new TableView instance with the provided configuration.
     pub fn new(table_config: &TableConfiguration) -> Self {
+        let mut model = TableViewModel::new(table_config);
+        model.refresh();
+
         TableView {
-            model: TableViewModel::new(table_config),
+            model,
             is_active: false,
         }
     }
@@ -140,44 +143,48 @@ impl TableView {
             .split(main_layout);
         let header_cells = header_cells(self.model.sort_predicate(), self.model.sort_direction());
         let table_header = Row::new(header_cells).height(1);
-        let mut file_list = Vec::new();
-        let mut error = None;
-
-        match self.model.list() {
-            Ok(_) => {
-                self.sort();
-                self.model.push_parent_front();
-
-                file_list = self
-                    .model
-                    .files()
-                    .iter()
-                    .map(|file| {
-                        let cell_style = match file.is_dir {
-                            true => Style::default()
-                                .bg(Color::LightBlue)
-                                .fg(Color::White)
-                                .add_modifier(Modifier::BOLD),
-                            false => Style::default().bg(Color::LightBlue).fg(Color::White),
-                        };
-                        let size_cell = match file.size {
-                            Some(size) => {
-                                Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL)))
-                            }
-                            None => Cell::from("<DIR>"),
-                        };
-                        Row::new(vec![
-                            Cell::style(Cell::from(file.name.clone()), cell_style),
-                            Cell::style(size_cell, cell_style),
-                            Cell::style(Cell::from(file.date.clone()), cell_style),
-                        ])
-                    })
-                    .collect::<Vec<Row>>();
-            }
-            Err(err) => {
-                error = Some(err);
-            }
+        
+        if let Some(error) = self.model.last_error() {
+            let popup = Paragraph::new(error.to_string())
+                .block(
+                    Block::default()
+                        .title("Error")
+                        .borders(Borders::ALL)
+                        .style(Style::default().bg(Color::LightRed).fg(Color::White)),
+                )
+                .wrap(Wrap { trim: false })
+                .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
+                .alignment(Alignment::Center);
+            let area = centered_rect(50, 25, table_layout[panel_idx]);
+            frame.render_widget(Clear, area);
+            frame.render_widget(popup, area);
         }
+
+        let file_list = self
+            .model
+            .files()
+            .iter()
+            .map(|file| {
+                let cell_style = match file.is_dir {
+                    true => Style::default()
+                        .bg(Color::LightBlue)
+                        .fg(Color::White)
+                        .add_modifier(Modifier::BOLD),
+                    false => Style::default().bg(Color::LightBlue).fg(Color::White),
+                };
+                let size_cell = match file.size {
+                    Some(size) => {
+                        Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL)))
+                    }
+                    None => Cell::from("<DIR>"),
+                };
+                Row::new(vec![
+                    Cell::style(Cell::from(file.name.clone()), cell_style),
+                    Cell::style(size_cell, cell_style),
+                    Cell::style(Cell::from(file.date.clone()), cell_style),
+                ])
+            })
+            .collect::<Vec<Row>>();
 
         let selected_style = match self.is_active {
             true => Style::default().fg(Color::Black).bg(Color::Red),
@@ -203,22 +210,6 @@ impl TableView {
             .column_spacing(0);
 
         frame.render_stateful_widget(table_view, table_layout[panel_idx], self.model.state_mut());
-
-        if let Some(error) = error {
-            let popup = Paragraph::new(error.to_string())
-                .block(
-                    Block::default()
-                        .title("Error")
-                        .borders(Borders::ALL)
-                        .style(Style::default().bg(Color::LightRed).fg(Color::White)),
-                )
-                .wrap(Wrap { trim: false })
-                .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
-                .alignment(Alignment::Center);
-            let area = centered_rect(50, 25, table_layout[panel_idx]);
-            frame.render_widget(Clear, area);
-            frame.render_widget(popup, area);
-        }
     }
 
     pub fn select_first(&mut self) {
