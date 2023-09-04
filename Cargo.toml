@@ -25,6 +25,7 @@ termion = "*"
 toml = "0.7.2"
 tui = {version = "0.19", features = ["termion"], default-features = false}
 tui-input = {version = "*", features = ["termion"], default-features = false}
+tui-menu = "0.1.1"
 walkdir = "2.3.2"
 
 [profile.release]
