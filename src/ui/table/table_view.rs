@@ -257,6 +257,7 @@ impl TableView {
     /// Sorts the table by the new `direction`.
     pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.model.set_sort_direction(direction);
+        self.model.sort();
     }
 }
 
