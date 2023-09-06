@@ -190,6 +190,8 @@ impl TableViewModel {
     pub(crate) fn refresh(&mut self) {
         if let Ok(files) = list_dir(&self.cwd) {
             self.files = files;
+            self.sort();
+            self.push_parent_front();
         }
     }
 
