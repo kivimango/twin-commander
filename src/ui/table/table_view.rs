@@ -243,6 +243,7 @@ impl TableView {
     /// Sorts the table by the new `predicate`.
     pub fn sort_by(&mut self, predicate: TableSortPredicate) {
         self.model.set_sort_predicate(predicate);
+        self.sort();
     }
 
     pub fn sort_direction(&self) -> TableSortDirection {
