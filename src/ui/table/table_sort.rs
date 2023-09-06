@@ -2,7 +2,7 @@ use crate::core::list_dir::DirContent;
 use std::cmp::Ordering;
 
 pub(crate) trait SortBy {
-    fn sort(&self, files: &mut Vec<DirContent>);
+    fn sort(&self, files: &mut[DirContent]);
 }
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
@@ -105,7 +105,7 @@ impl TableSorter {
         self.sorter = get_type_by(self.direction, predicate);
     }
 
-    pub(crate) fn sort(&self, files: &mut Vec<DirContent>) {
+    pub(crate) fn sort(&self, files: &mut[DirContent]) {
         self.sorter.sort(files)
     }
 }
@@ -170,7 +170,7 @@ impl From<TableSortPredicate> for String {
 pub(crate) struct NameSorterAsc;
 
 impl SortBy for NameSorterAsc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 a.name.cmp(&b.name)
@@ -190,7 +190,7 @@ impl SortBy for NameSorterAsc {
 pub(crate) struct NameSorterDesc;
 
 impl SortBy for NameSorterDesc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 b.name.cmp(&a.name)
@@ -209,7 +209,7 @@ impl SortBy for NameSorterDesc {
 pub(crate) struct SizeSorterAsc;
 
 impl SortBy for SizeSorterAsc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 b.size.cmp(&a.size)
@@ -228,7 +228,7 @@ impl SortBy for SizeSorterAsc {
 pub(crate) struct SizeSorterDesc;
 
 impl SortBy for SizeSorterDesc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 b.size.cmp(&a.size)
@@ -247,7 +247,7 @@ impl SortBy for SizeSorterDesc {
 pub(crate) struct LastModifiedSorterAsc;
 
 impl SortBy for LastModifiedSorterAsc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 a.date.cmp(&b.date)
@@ -266,7 +266,7 @@ impl SortBy for LastModifiedSorterAsc {
 pub(crate) struct LastModifiedSorterDesc;
 
 impl SortBy for LastModifiedSorterDesc {
-    fn sort(&self, files: &mut Vec<DirContent>) {
+    fn sort(&self, files: &mut[DirContent]) {
         files.sort_by(|a, b| {
             if a.is_dir && b.is_dir {
                 b.date.cmp(&a.date)
