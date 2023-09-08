@@ -163,8 +163,17 @@ impl TableViewModel {
         self.state.select(Some(i));
     }
 
+    /// Sorts the file list by the `sorter.predicate`.
+    /// 
+    /// If the current working directory is not a root,
+    /// it skips the file list's first item which
+    /// is the ".." entry to indicate the parent directory.
     pub(crate) fn sort(&mut self) {
-        self.sorter.sort(&mut self.files);
+        if self.cwd.has_root() {
+            self.sorter.sort(&mut self.files[0..])
+        } else {
+            self.sorter.sort(&mut self.files);
+        }
     }
 
     pub(crate) fn sort_direction(&self) -> TableSortDirection {
