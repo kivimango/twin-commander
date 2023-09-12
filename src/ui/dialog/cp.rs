@@ -6,7 +6,7 @@ use fs_extra::dir::{
 use std::{
     path::{Path, PathBuf},
     sync::mpsc::Sender,
-    thread,
+    thread, time::Duration,
 };
 
 pub struct CopyStrategy;
@@ -59,6 +59,7 @@ impl TransferStrategy for CopyStrategy {
                     .send(TransferProgress::FileTransfer(progress_info))
                     .is_ok()
                 {}
+                thread::sleep(Duration::from_millis(500));
             };
             let _result = fs_extra::file::copy_with_progress(
                 AsRef::<Path>::as_ref(&from),

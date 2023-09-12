@@ -7,7 +7,7 @@ use fs_extra::{
 };
 use std::{
     path::{Path, PathBuf},
-    thread,
+    thread, time::Duration,
 };
 
 pub struct MoveStrategy;
@@ -60,6 +60,7 @@ impl TransferStrategy for MoveStrategy {
                     .send(TransferProgress::FileTransfer(progress_info))
                     .is_ok()
                 {}
+                thread::sleep(Duration::from_millis(500));
             };
             let _result = move_file_with_progress(
                 AsRef::<Path>::as_ref(&from),
