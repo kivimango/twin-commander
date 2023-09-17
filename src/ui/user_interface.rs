@@ -1,6 +1,6 @@
 use super::{
-    fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MkDirDialog, MoveStrategy,
-    RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
+    fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MenuState, MkDirDialog,
+    MoveStrategy, RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use crate::core::config::Configuration;
@@ -11,7 +11,8 @@ use termion::event::Key;
 use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
 use tui::layout::{Constraint, Layout};
-use tui::widgets::Clear;
+use tui::style::{Color, Style};
+use tui::widgets::{Block, Borders, Clear};
 use tui::Frame;
 
 #[derive(Copy, Clone)]
@@ -54,7 +55,7 @@ pub struct UserInterface {
     active_panel: ActivePanel,
     _config: Rc<Configuration>,
     dialog: Option<Dialog>,
-    top_menu: Menu,
+    top_menu: MenuState,
     left_panel: TableView,
     right_panel: TableView,
     bottom_menu: BottomMenu,
@@ -72,7 +73,7 @@ impl UserInterface {
             active_panel: ActivePanel::Left,
             _config: config.clone(),
             dialog: None,
-            top_menu: Menu::new(),
+            top_menu: MenuState::new_premade(),
             left_panel,
             right_panel: TableView::new(right_table_config),
             bottom_menu: BottomMenu::new(),
@@ -100,10 +101,25 @@ impl UserInterface {
             .split(frame_size);
 
         {
-            self.top_menu.render(layout[0], frame);
             self.left_panel.render_table(layout[1], 0, frame);
             self.right_panel.render_table(layout[1], 1, frame);
             self.bottom_menu.render(layout[2], frame);
+        }
+
+        {
+            // Render top menu at last.
+            // If expanded, menu will be drawn on top of content
+            let top_menu = Menu::default()
+                .style(Style::default().bg(Color::Cyan).fg(Color::White))
+                .item_style(Style::default().bg(Color::Cyan).fg(Color::Gray))
+                .selected_item_style(Style::default().bg(Color::Black).fg(Color::White))
+                .submenu_block(
+                    Block::default()
+                        .border_type(tui::widgets::BorderType::Plain)
+                        .border_style(Style::default().fg(Color::White).bg(Color::Cyan))
+                        .borders(Borders::ALL),
+                );
+            frame.render_stateful_widget(top_menu, layout[0], &mut self.top_menu);
         }
 
         {
@@ -141,17 +157,6 @@ impl UserInterface {
         match input_mode {
             InputMode::Normal => match key {
                 Key::Char('\t') => self.switch_focused_panel(),
-                // Top menu
-                Key::Left => {
-                    if self.top_menu.has_selection() {
-                        self.top_menu.select_previous()
-                    }
-                }
-                Key::Right => {
-                    if self.top_menu.has_selection() {
-                        self.top_menu.select_next()
-                    }
-                }
                 // Twin panel
                 Key::Home => match &self.active_panel {
                     ActivePanel::Left => self.left_panel.select_first(),
@@ -224,7 +229,22 @@ impl UserInterface {
                     }
                     // show error message about no selection
                 }
-                Key::F(9) => self.top_menu.select_next(),
+                Key::F(9) => {
+                    self.top_menu.activate();
+                    app.set_input_mode(InputMode::Menu);
+                }
+                _ => (),
+            },
+            // Top menu
+            InputMode::Menu => match key {
+                Key::Left => self.top_menu.select_previous(),
+                Key::Right => self.top_menu.select_next(),
+                Key::Up => self.top_menu.up(),
+                Key::Down => self.top_menu.down(),
+                Key::F(9) | Key::Esc => {
+                    self.top_menu.deactivate();
+                    app.set_input_mode(InputMode::Normal)
+                }
                 _ => (),
             },
             InputMode::Editing => {
