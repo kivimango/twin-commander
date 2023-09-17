@@ -12,6 +12,7 @@ use tui::Terminal;
 pub enum InputMode {
     Normal,
     Editing,
+    Menu,
 }
 
 impl Default for InputMode {
@@ -57,7 +58,7 @@ impl Application {
                                 ui.handle_key(key, self);
                             }
                         },
-                        InputMode::Editing => ui.handle_key(key, self),
+                        InputMode::Editing | InputMode::Menu => ui.handle_key(key, self),
                     },
                     Event::Tick => ui.tick(self),
                 }
