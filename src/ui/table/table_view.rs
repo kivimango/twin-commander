@@ -143,7 +143,7 @@ impl TableView {
             .split(main_layout);
         let header_cells = header_cells(self.model.sort_predicate(), self.model.sort_direction());
         let table_header = Row::new(header_cells).height(1);
-        
+
         if let Some(error) = self.model.last_error() {
             let popup = Paragraph::new(error.to_string())
                 .block(
@@ -167,15 +167,13 @@ impl TableView {
             .map(|file| {
                 let cell_style = match file.is_dir {
                     true => Style::default()
-                        .bg(Color::LightBlue)
+                        .bg(Color::Blue)
                         .fg(Color::White)
                         .add_modifier(Modifier::BOLD),
-                    false => Style::default().bg(Color::LightBlue).fg(Color::White),
+                    false => Style::default().bg(Color::Blue).fg(Color::White),
                 };
                 let size_cell = match file.size {
-                    Some(size) => {
-                        Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL)))
-                    }
+                    Some(size) => Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL))),
                     None => Cell::from("<DIR>"),
                 };
                 Row::new(vec![
@@ -206,7 +204,7 @@ impl TableView {
             .widths(&widths)
             .header(table_header)
             .highlight_style(selected_style)
-            .style(Style::default().bg(Color::LightBlue).fg(Color::White))
+            .style(Style::default().bg(Color::Blue).fg(Color::White))
             .column_spacing(0);
 
         frame.render_stateful_widget(table_view, table_layout[panel_idx], self.model.state_mut());
