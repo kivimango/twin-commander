@@ -22,14 +22,12 @@ impl Default for InputMode {
 }
 
 pub struct Application {
-    config: Rc<Configuration>,
     input_mode: InputMode,
 }
 
 impl Application {
     pub fn new() -> Self {
         Application {
-            config: Rc::new(get_config()),
             input_mode: InputMode::default(),
         }
     }
@@ -37,8 +35,8 @@ impl Application {
     pub(crate) fn run(&mut self, terminal: &mut Terminal<TermionBackend<RawTerminal<Stdout>>>) {
         let events = Events::new(None);
         let mut should_quit = false;
-        let config = self.config.clone();
-        let mut ui = UserInterface::new(&config);
+        let config = get_config();
+        let mut ui = UserInterface::new(config);
 
         loop {
             if should_quit {

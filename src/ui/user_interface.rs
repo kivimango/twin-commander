@@ -6,7 +6,6 @@ use crate::app::{Application, InputMode};
 use crate::core::config::Configuration;
 use std::io::Stdout;
 use std::path::PathBuf;
-use std::rc::Rc;
 use termion::event::Key;
 use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
@@ -53,7 +52,7 @@ enum ShowDialogError {
 /// * and the bottom menu: file operations
 pub struct UserInterface {
     active_panel: ActivePanel,
-    _config: Rc<Configuration>,
+    config: Configuration,
     dialog: Option<Dialog>,
     top_menu: MenuState,
     left_panel: TableView,
@@ -63,19 +62,23 @@ pub struct UserInterface {
 }
 
 impl UserInterface {
-    pub(crate) fn new(config: &Rc<Configuration>) -> Self {
-        let left_table_config = config.left_table_config();
-        let right_table_config = config.right_table_config();
-        let mut left_panel = TableView::new(left_table_config);
-        left_panel.activate();
+    pub(crate) fn new(config: Configuration) -> Self {
+        let (left_panel, right_panel) = {
+            let left_table_config = config.left_table_config().clone();
+            let right_table_config = config.right_table_config().clone();
+            let mut left_panel = TableView::new(left_table_config.clone());
+            left_panel.activate();
+            (left_panel, TableView::new(right_table_config))
+        };
+        
 
         UserInterface {
             active_panel: ActivePanel::Left,
-            _config: config.clone(),
+            config,
             dialog: None,
             top_menu: MenuState::new_premade(),
             left_panel,
-            right_panel: TableView::new(right_table_config),
+            right_panel,
             bottom_menu: BottomMenu::new(),
             focused_widget: Widgets::TwinPanel,
         }
