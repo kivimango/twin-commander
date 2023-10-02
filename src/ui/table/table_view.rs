@@ -252,6 +252,12 @@ impl TableView {
         self.model.sort_predicate()
     }
 
+    pub fn update_config(&mut self, new_config: TableConfiguration) {
+        self.model.set_sort_predicate(TableSortPredicate::from(new_config.sort_predicate()));
+        self.model.set_sort_direction(TableSortDirection::from(new_config.sort_direction()));
+        self.model.refresh()
+    }
+
     /// Sorts the table by the new `direction`.
     pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.model.set_sort_direction(direction);
