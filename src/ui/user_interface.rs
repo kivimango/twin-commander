@@ -1,6 +1,7 @@
 use super::{
-    fixed_height_centered_rect, BottomMenu, CopyStrategy, Menu, MenuState, MkDirDialog,
-    MoveStrategy, RmDirDialog, TableSortDirection, TableSortPredicate, TableView, TransferDialog, BoxedDialog, centered_rect, SortingDialog,
+    centered_rect, fixed_height_centered_rect, BottomMenu, BoxedDialog, CopyStrategy, Menu,
+    MenuState, MkDirDialog, MoveStrategy, RmDirDialog, SortingDialog, TableSortDirection,
+    TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use crate::core::config::{Configuration, TableConfiguration};
@@ -332,32 +333,22 @@ impl UserInterface {
                 Dialog::Menu(dialog) => {
                     if dialog.should_quit() {
                         if dialog.request_config_change() {
-                            dialog.change_configuration(&mut self.config, self.active_panel);
-                            let new_table_config = {
-                                match self.active_panel {
-                                    ActivePanel::Left => {
-                                        let path = self.config.left_table_config().path().clone();
-                                        let predicate = self.config.left_table_config().sort_predicate();
-                                        let direction = self.config.left_table_config().sort_direction();
-                                        let mut tc = TableConfiguration::default();
-                                        tc.set_path(path.to_owned());
-                                        tc.set_predicate(predicate.to_string());
-                                        tc.set_sort_direction(direction.to_string());
-                                        tc
-                                    }
-                                    ActivePanel::Right => {
-                                        let path = self.config.right_table_config().path().clone();
-                                        let predicate = self.config.right_table_config().sort_predicate();
-                                        let direction = self.config.right_table_config().sort_direction();
-                                        let mut tc = TableConfiguration::default();
-                                        tc.set_path(path.to_owned());
-                                        tc.set_predicate(predicate.to_string());
-                                        tc.set_sort_direction(direction.to_string());
-                                        tc
-                                    }
-                                }
-                            };
-                            self.active_panel_mut().update_config(new_table_config);
+                            let selected_menu_item = self.top_menu.selected_item();
+                            match selected_menu_item {
+                                0 => change_config(
+                                    dialog,
+                                    &mut self.left_panel,
+                                    &mut self.config,
+                                    ActivePanel::Left,
+                                ),
+                                1 => change_config(
+                                    dialog,
+                                    &mut self.right_panel,
+                                    &mut self.config,
+                                    ActivePanel::Right,
+                                ),
+                                _ => {}
+                            }
                         }
                         self.close_dialog(app)
                     }
@@ -438,11 +429,26 @@ impl UserInterface {
     }
 
     fn create_menu_dialog(&mut self) {
-        let (predicate, direction) = match self.active_panel {
-            ActivePanel::Left => (self.left_panel.sort_predicate(), self.left_panel.sort_direction()),
-            ActivePanel::Right => (self.right_panel.sort_predicate(), self.right_panel.sort_direction()),
-        };
-        self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(predicate.into(), direction.into()))));
+        let selectem_item_idx = self.top_menu.selected_item();
+        match selectem_item_idx {
+            0 => {
+                let predicate = self.left_panel.sort_predicate();
+                let direction = self.left_panel.sort_direction();
+                self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(
+                    predicate.into(),
+                    direction.into(),
+                ))));
+            }
+            1 => {
+                let predicate = self.right_panel.sort_predicate();
+                let direction = self.right_panel.sort_direction();
+                self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(
+                    predicate.into(),
+                    direction.into(),
+                ))));
+            }
+            _ => {}
+        }
         self.top_menu.deactivate();
     }
 
@@ -451,4 +457,21 @@ impl UserInterface {
         self.dialog = None;
         self.focused_widget = Widgets::TwinPanel;
     }
+}
+
+fn change_config(
+    dialog: &mut Box<dyn BoxedDialog>,
+    table: &mut TableView,
+    config: &mut Configuration,
+    panel: ActivePanel,
+) {
+    dialog.change_configuration(config, panel);
+    let path = config.left_table_config().path().clone();
+    let predicate = config.left_table_config().sort_predicate();
+    let direction = config.left_table_config().sort_direction();
+    let mut tc = TableConfiguration::default();
+    tc.set_path(path.to_owned());
+    tc.set_predicate(predicate.to_string());
+    tc.set_sort_direction(direction.to_string());
+    table.update_config(tc);
 }
