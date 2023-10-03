@@ -202,6 +202,10 @@ impl MenuState {
         }
     }
 
+    pub(crate) fn selected_item(&self) -> usize {
+        self.selected_item_idx
+    }
+
     /// Creates a pre-made Menu instance.
     pub(crate) fn new_premade() -> Self {
         MenuState::new(vec![
