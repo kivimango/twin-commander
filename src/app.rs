@@ -2,7 +2,6 @@ use crate::core::config::{self, try_load_from_file, try_save_to_file, Configurat
 use crate::event::{Event, Events};
 use crate::ui::UserInterface;
 use std::io::Stdout;
-use std::rc::Rc;
 use termion::event::Key;
 use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
@@ -63,7 +62,7 @@ impl Application {
             }
         }
         // temporary solution to avoid Rc<RefCell<Configuration> everywhere in the ui
-        let config_to_save = get_actual_config(&ui);
+        let config_to_save = ui.config();
         save_config(&config_to_save);
     }
 
@@ -111,31 +110,4 @@ fn save_config(config: &Configuration) {
     } else {
         let _ = try_save_to_file(config);
     }
-}
-
-fn get_actual_config(ui: &UserInterface) -> Configuration {
-    let mut config_to_save = Configuration::default();
-    let left_path = ui.left_table().pwd().to_path_buf();
-    let left_direction = ui.left_table().sort_direction();
-    let left_predicate = ui.left_table().sort_predicate();
-    let right_path = ui.right_table().pwd().to_path_buf();
-    let right_direction = ui.right_table().sort_direction();
-    let right_predicate = ui.right_table().sort_predicate();
-
-    config_to_save.left_table_config_mut().set_path(left_path);
-    config_to_save
-        .left_table_config_mut()
-        .set_sort_direction(left_direction.into());
-    config_to_save
-        .left_table_config_mut()
-        .set_predicate(left_predicate.into());
-
-    config_to_save.right_table_config_mut().set_path(right_path);
-    config_to_save
-        .right_table_config_mut()
-        .set_sort_direction(right_direction.into());
-    config_to_save
-        .right_table_config_mut()
-        .set_predicate(right_predicate.into());
-    config_to_save
 }
