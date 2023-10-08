@@ -223,6 +223,13 @@ impl MenuState {
                 ],
             ),
             SubMenu::new(
+                " Options ",
+                vec![MenuItem {
+                    title: "Panel options".into(),
+                    highlighted: false,
+                }],
+            ),
+            SubMenu::new(
                 " Right ",
                 vec![
                     MenuItem {
