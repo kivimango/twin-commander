@@ -1,7 +1,7 @@
 use super::{
     centered_rect, fixed_height_centered_rect, BottomMenu, BoxedDialog, CopyStrategy, Menu,
-    MenuState, MkDirDialog, MoveStrategy, RmDirDialog, SortingDialog, TableSortDirection,
-    TableSortPredicate, TableView, TransferDialog,
+    MenuState, MkDirDialog, MoveStrategy, PanelOpionsDialog, RmDirDialog, SortingDialog,
+    TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
 use crate::core::config::{Configuration, TableConfiguration};
@@ -83,6 +83,10 @@ impl UserInterface {
             bottom_menu: BottomMenu::new(),
             focused_widget: Widgets::TwinPanel,
         }
+    }
+
+    pub(crate) fn config(&self) -> &Configuration {
+        &self.config
     }
 
     pub(crate) fn left_table(&self) -> &TableView {
@@ -341,7 +345,11 @@ impl UserInterface {
                                     &mut self.config,
                                     ActivePanel::Left,
                                 ),
-                                1 => change_config(
+                                1 => {
+                                    dialog
+                                        .change_configuration(&mut self.config, self.active_panel);
+                                }
+                                2 => change_config(
                                     dialog,
                                     &mut self.right_panel,
                                     &mut self.config,
@@ -440,6 +448,10 @@ impl UserInterface {
                 ))));
             }
             1 => {
+                let config = &self.config;
+                self.dialog = Some(Dialog::Menu(Box::new(PanelOpionsDialog::new(config))));
+            }
+            2 => {
                 let predicate = self.right_panel.sort_predicate();
                 let direction = self.right_panel.sort_direction();
                 self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(
