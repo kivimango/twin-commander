@@ -82,6 +82,9 @@ pub struct Configuration {
     left_table: TableConfiguration,
     /// The distinct configuration of the right panel
     right_table: TableConfiguration,
+
+    #[serde(default = "bool::default")]
+    show_hidden_files: bool,
 }
 
 impl Configuration {
@@ -101,6 +104,14 @@ impl Configuration {
 
     pub fn right_table_config_mut(&mut self) -> &mut TableConfiguration {
         &mut self.right_table
+    }
+
+    pub fn show_hidden_files(&self) -> bool {
+        self.show_hidden_files
+    }
+
+    pub fn set_show_hidden_files(&mut self, show: bool) {
+        self.show_hidden_files = show
     }
 }
 
