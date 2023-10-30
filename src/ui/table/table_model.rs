@@ -1,7 +1,7 @@
 use super::{TableSortDirection, TableSortPredicate, TableSorter};
 use crate::core::{
-    config::TableConfiguration,
-    list_dir::{list_dir, DirContent},
+    config::{Configuration, TableConfiguration},
+    list_dir::{list_dir, DirContent, FilterOptions},
 };
 use std::{
     io::Error,
@@ -12,16 +12,20 @@ use tui::widgets::TableState;
 pub(crate) struct TableViewModel {
     cwd: PathBuf,
     files: Vec<DirContent>,
+    filter_options: FilterOptions,
     last_error: Option<Error>,
     state: TableState,
     sorter: TableSorter,
 }
 
 impl TableViewModel {
-    pub(crate) fn new(table_config: &TableConfiguration) -> Self {
+    pub(crate) fn new(table_config: &TableConfiguration, config: &Configuration) -> Self {
         TableViewModel {
             cwd: table_config.path().clone(),
             files: Vec::new(),
+            filter_options: FilterOptions {
+                show_hidden_files: config.show_hidden_files(),
+            },
             last_error: None,
             state: TableState::default(),
             sorter: TableSorter::new(
@@ -79,14 +83,14 @@ impl TableViewModel {
     }
 
     pub(crate) fn list(&mut self) -> Result<(), Error> {
-        match list_dir(&self.cwd) {
+        match list_dir(&self.cwd, &self.filter_options) {
             Ok(files) => {
                 self.files = files;
                 Ok(())
             }
             Err(err) => {
                 //self.last_error = Some(err);
-                Err(std::io::Error::from(err))
+                Err(err)
             }
         }
     }
@@ -164,7 +168,7 @@ impl TableViewModel {
     }
 
     /// Sorts the file list by the `sorter.predicate`.
-    /// 
+    ///
     /// If the current working directory is not a root,
     /// it skips the file list's first item which
     /// is the ".." entry to indicate the parent directory.
@@ -197,7 +201,7 @@ impl TableViewModel {
     }
 
     pub(crate) fn refresh(&mut self) {
-        if let Ok(files) = list_dir(&self.cwd) {
+        if let Ok(files) = list_dir(&self.cwd, &self.filter_options) {
             self.files = files;
             self.sort();
             self.push_parent_front();
