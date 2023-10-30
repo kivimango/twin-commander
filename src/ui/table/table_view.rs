@@ -1,5 +1,8 @@
 use super::{centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
-use crate::{core::config::TableConfiguration, ui::RenderWidget};
+use crate::{
+    core::config::{Configuration, TableConfiguration},
+    ui::RenderWidget,
+};
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
@@ -40,8 +43,8 @@ pub struct TableView {
 
 impl TableView {
     /// Creates a new TableView instance with the provided configuration.
-    pub fn new(table_config: &TableConfiguration) -> Self {
-        let mut model = TableViewModel::new(table_config);
+    pub fn new(table_config: &TableConfiguration, config: &Configuration) -> Self {
+        let mut model = TableViewModel::new(table_config, config);
         model.refresh();
 
         TableView {
@@ -253,8 +256,10 @@ impl TableView {
     }
 
     pub fn update_config(&mut self, new_config: TableConfiguration) {
-        self.model.set_sort_predicate(TableSortPredicate::from(new_config.sort_predicate()));
-        self.model.set_sort_direction(TableSortDirection::from(new_config.sort_direction()));
+        self.model
+            .set_sort_predicate(TableSortPredicate::from(new_config.sort_predicate()));
+        self.model
+            .set_sort_direction(TableSortDirection::from(new_config.sort_direction()));
         self.model.refresh()
     }
 
