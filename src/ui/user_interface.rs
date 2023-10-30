@@ -68,9 +68,9 @@ impl UserInterface {
         let (left_panel, right_panel) = {
             let left_table_config = config.left_table_config().clone();
             let right_table_config = config.right_table_config().clone();
-            let mut left_panel = TableView::new(left_table_config.clone());
+            let mut left_panel = TableView::new(left_table_config.clone(), &config);
             left_panel.activate();
-            (left_panel, TableView::new(right_table_config))
+            (left_panel, TableView::new(right_table_config, &config))
         };
 
         UserInterface {
