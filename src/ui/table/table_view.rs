@@ -61,8 +61,16 @@ impl TableView {
         }
     }
 
-    pub fn deactivate(&mut self) {
-        self.is_active = false;
+    /// Checks for application-wide Configuration changes (like show or hide hidden files)
+    /// and applies them to the model and view.
+    /// Also refreshes the TableView.
+    pub fn change_config(&mut self, config: &Configuration) {
+        let show_hidden_files = self.model.filter_options().show_hidden_files;
+        if show_hidden_files != config.show_hidden_files() {
+            self.model.filter_options_mut().show_hidden_files = config.show_hidden_files()
+        }
+
+        self.model.refresh()
     }
 
     pub fn change_dir(&mut self) {
@@ -97,6 +105,10 @@ impl TableView {
                 }
             }
         }
+    }
+
+    pub fn deactivate(&mut self) {
+        self.is_active = false;
     }
 
     /*pub fn get_selection(&self) -> Option<usize> {
