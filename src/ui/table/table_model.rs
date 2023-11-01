@@ -82,6 +82,14 @@ impl TableViewModel {
         &self.files
     }
 
+    pub(crate) fn filter_options(&self) -> &FilterOptions {
+        &self.filter_options
+    }
+
+    pub(crate) fn filter_options_mut(&mut self) -> &mut FilterOptions {
+        &mut self.filter_options
+    }
+
     pub(crate) fn list(&mut self) -> Result<(), Error> {
         match list_dir(&self.cwd, &self.filter_options) {
             Ok(files) => {
