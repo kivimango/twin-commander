@@ -339,16 +339,21 @@ impl UserInterface {
                         if dialog.request_config_change() {
                             let selected_menu_item = self.top_menu.selected_item();
                             match selected_menu_item {
+                                // Left panel menu
                                 0 => change_config(
                                     dialog,
                                     &mut self.left_panel,
                                     &mut self.config,
                                     ActivePanel::Left,
                                 ),
+                                // Panel options
                                 1 => {
                                     dialog
                                         .change_configuration(&mut self.config, self.active_panel);
+                                    self.left_panel.change_config(&self.config);
+                                    self.right_panel.change_config(&self.config);
                                 }
+                                // Right panel menu
                                 2 => change_config(
                                     dialog,
                                     &mut self.right_panel,
