@@ -7,11 +7,20 @@ use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
 use tui::Terminal;
 
+/// Represents the various input modes that can be used in the application.
 #[derive(Clone, Copy, Default)]
 pub enum InputMode {
+    /// This mode is used for normal operations and interactions within the application.
+    /// This the default input mode when the application starts.
     #[default]
     Normal,
+
+    /// The input mode used for editing.
+    /// This mode is typically activated when the user is editing text or other content within the application.
     Editing,
+
+    /// The input mode used for accessing the menu.
+    /// This mode is active when the user is navigating or interacting with the application's menu system.
     Menu,
 }
 
@@ -20,12 +29,30 @@ pub struct Application {
 }
 
 impl Application {
+    /// Constructs a new instance of the `Application` struct with the default input mode.
+    ///
+    /// # Returns
+    ///
+    /// A new instance of the `Application` struct with the default input mode set.
     pub fn new() -> Self {
         Application {
             input_mode: InputMode::default(),
         }
     }
 
+    // Runs the main event loop for the application, handling user input and updating the user interface accordingly.
+    ///
+    /// # Arguments
+    ///
+    /// * `terminal` - A mutable reference to the terminal instance used by the application.
+    ///
+    /// # Remarks
+    ///
+    /// This method continuously listens for user input and updates the user interface based on the current input mode.
+    /// It also handles events such as quitting the application and saving the configuration before exiting.
+    /// Performs initial checks for the configuration file and its path before starting the event loop.
+    /// If the configuration file is not found, the application attempts to re-create it.
+    /// Subsequently, the configuration data is loaded from the configuration file.
     pub(crate) fn run(&mut self, terminal: &mut Terminal<TermionBackend<RawTerminal<Stdout>>>) {
         let events = Events::new(None);
         let mut should_quit = false;
@@ -61,10 +88,20 @@ impl Application {
         save_config(config_to_save);
     }
 
+    /// Retrieves the current input mode of the application.
+    ///
+    /// # Returns
+    ///
+    /// The current input mode of the application.
     pub(crate) fn input_mode(&self) -> InputMode {
         self.input_mode
     }
 
+    /// Sets the input mode of the application to the specified input mode.
+    ///
+    /// # Arguments
+    ///
+    /// * `input_mode` - The input mode to be set for the application.
     pub(crate) fn set_input_mode(&mut self, input_mode: InputMode) {
         self.input_mode = input_mode;
     }
