@@ -79,17 +79,14 @@ impl PanelOpionsDialog {
     }
 
     fn change_config(&mut self) {
-        match self.selected_option {
-            0 => {
-                if self.show_hidden_files {
-                    self.show_hidden_files = false;
-                    uncheck_mark(&mut self.options[0]);
-                } else {
-                    self.show_hidden_files = true;
-                    check_mark(&mut self.options[0]);
-                }
+        if self.selected_option == 0 {
+            if self.show_hidden_files {
+                self.show_hidden_files = false;
+                uncheck_mark(&mut self.options[0]);
+            } else {
+                self.show_hidden_files = true;
+                check_mark(&mut self.options[0]);
             }
-            _ => {}
         }
     }
 
