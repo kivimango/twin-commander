@@ -366,5 +366,5 @@ fn uncheck_mark(content: &mut String) {
 }
 
 fn check_mark(content: &mut String) {
-    content.replace_range(1..2, &CHECK_MARK);
+    content.replace_range(1..2, CHECK_MARK);
 }
