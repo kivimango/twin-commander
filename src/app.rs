@@ -63,7 +63,7 @@ impl Application {
         }
         // temporary solution to avoid Rc<RefCell<Configuration> everywhere in the ui
         let config_to_save = ui.config();
-        save_config(&config_to_save);
+        save_config(config_to_save);
     }
 
     pub(crate) fn input_mode(&self) -> InputMode {
