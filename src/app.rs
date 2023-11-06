@@ -7,17 +7,12 @@ use termion::raw::RawTerminal;
 use tui::backend::TermionBackend;
 use tui::Terminal;
 
-#[derive(Clone, Copy)]
+#[derive(Clone, Copy, Default)]
 pub enum InputMode {
+    #[default]
     Normal,
     Editing,
     Menu,
-}
-
-impl Default for InputMode {
-    fn default() -> Self {
-        InputMode::Normal
-    }
 }
 
 pub struct Application {
