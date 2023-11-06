@@ -1,12 +1,17 @@
-use std::{io::Stdout, borrow::Cow};
-use crate::{ui::{BoxedDialog, TableSortDirection, TableSortPredicate, user_interface::ActivePanel}, core::config::Configuration};
+use crate::{
+    core::config::Configuration,
+    ui::{user_interface::ActivePanel, BoxedDialog, TableSortDirection, TableSortPredicate},
+};
+use std::{borrow::Cow, io::Stdout};
 use termion::event::Key;
 use termion::raw::RawTerminal;
 use tui::{
+    backend::TermionBackend,
     layout::{Alignment, Constraint, Direction, Layout, Rect},
     style::{Color, Style},
     text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, Paragraph, List, ListItem, ListState}, backend::TermionBackend, Frame,
+    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
+    Frame,
 };
 
 const CHECK_MARK: &'static str = "X";
@@ -28,7 +33,7 @@ impl Buttons {
 enum Components {
     PredicateColumn,
     DirectionColumn,
-    Buttons
+    Buttons,
 }
 
 struct PredicateList {
@@ -48,12 +53,12 @@ impl PredicateList {
                 "[ ] Size".into(),
                 "[ ] Last modified".into(),
             ],
-            selected: predicate.to_usize()
+            selected: predicate.as_usize(),
         }
     }
 
     fn check_mark(&mut self) {
-        let previous_predicate = self.predicate.to_usize();
+        let previous_predicate = self.predicate.as_usize();
         uncheck_mark(&mut self.options[previous_predicate]);
         self.predicate = TableSortPredicate::from(self.selected);
         check_mark(&mut self.options[self.selected]);
@@ -92,16 +97,13 @@ impl DirectionList {
         DirectionList {
             direction,
             state: ListState::default(),
-            options: [
-            "[ ] Ascending".into(),
-            "[ ] Descending".into(),
-            ],
-            selected: direction.to_usize()
+            options: ["[ ] Ascending".into(), "[ ] Descending".into()],
+            selected: direction.as_usize(),
         }
     }
 
     fn check_mark(&mut self) {
-        let previous_direction = self.direction.to_usize();
+        let previous_direction = self.direction.as_usize();
         uncheck_mark(&mut self.options[previous_direction]);
         self.direction = TableSortDirection::from(self.selected);
         check_mark(&mut self.options[self.selected]);
@@ -134,7 +136,7 @@ impl DirectionList {
 /// It is made up of two columns, on the left there is the PredicateList,
 /// on the right is the DirectionList.
 /// The bottom row contains the two buttons, Apply and Cancel respectively.
-/// 
+///
 /// ## Key controls
 /// Arrow keys:
 /// * ↑ and ↓ : select options
@@ -160,14 +162,14 @@ impl SortingDialog {
         predicate_list.state.select(Some(predicate_list.selected));
         predicate_list.check_mark();
         direction_list.check_mark();
-        
+
         SortingDialog {
             components,
             change_config: false,
             focused_button: Buttons::Cancel,
             predicate_list,
             direction_list,
-            should_quit:false,
+            should_quit: false,
         }
     }
 
@@ -178,10 +180,7 @@ impl SortingDialog {
 }
 
 impl BoxedDialog for SortingDialog {
-    fn render(
-        &self,
-        area: Rect,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>) {
+    fn render(&self, area: Rect, frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>) {
         let dialog_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
@@ -189,7 +188,14 @@ impl BoxedDialog for SortingDialog {
             .split(area);
         let options_layout = Layout::default()
             .direction(Direction::Horizontal)
-            .constraints([Constraint::Percentage(50), Constraint::Length(1), Constraint::Percentage(50)].as_ref())
+            .constraints(
+                [
+                    Constraint::Percentage(50),
+                    Constraint::Length(1),
+                    Constraint::Percentage(50),
+                ]
+                .as_ref(),
+            )
             .margin(1)
             .split(dialog_layout[0]);
 
@@ -203,13 +209,13 @@ impl BoxedDialog for SortingDialog {
             let focused_style = Style::default().bg(Color::Cyan).fg(Color::White);
             let button_style = Style::default().bg(Color::White);
             match self.components {
-                Components::PredicateColumn | Components::DirectionColumn => (button_style, button_style),
-                Components::Buttons => {
-                    match self.focused_button {
-                        Buttons::Apply => (focused_style, button_style),
-                        Buttons::Cancel => (button_style, focused_style),
-                    }
-                }   
+                Components::PredicateColumn | Components::DirectionColumn => {
+                    (button_style, button_style)
+                }
+                Components::Buttons => match self.focused_button {
+                    Buttons::Apply => (focused_style, button_style),
+                    Buttons::Cancel => (button_style, focused_style),
+                },
             }
         };
         let button_spans = Spans::from(vec![
@@ -218,12 +224,24 @@ impl BoxedDialog for SortingDialog {
         ]);
 
         let mut left_list_state = self.predicate_list.state.clone();
-        let left_items: Vec<ListItem<'_>> = self.predicate_list.options.iter().map(|item| ListItem::new(Cow::from(item))).collect();
-        let left_list = List::new(left_items).highlight_style(Style::default().bg(Color::Cyan).fg(Color::White));
+        let left_items: Vec<ListItem<'_>> = self
+            .predicate_list
+            .options
+            .iter()
+            .map(|item| ListItem::new(Cow::from(item)))
+            .collect();
+        let left_list = List::new(left_items)
+            .highlight_style(Style::default().bg(Color::Cyan).fg(Color::White));
 
         let mut right_list_state = self.direction_list.state.clone();
-        let right_items: Vec<ListItem> = self.direction_list.options.iter().map(|item| ListItem::new(Cow::from(item))).collect();
-        let right_list = List::new(right_items).highlight_style(Style::default().bg(Color::Cyan).fg(Color::White));
+        let right_items: Vec<ListItem> = self
+            .direction_list
+            .options
+            .iter()
+            .map(|item| ListItem::new(Cow::from(item)))
+            .collect();
+        let right_list = List::new(right_items)
+            .highlight_style(Style::default().bg(Color::Cyan).fg(Color::White));
 
         let block = Block::default()
             .borders(Borders::ALL)
@@ -244,69 +262,61 @@ impl BoxedDialog for SortingDialog {
 
     fn handle_keys(&mut self, key: Key, _app: &mut crate::app::Application) {
         match self.components {
-            Components::PredicateColumn => {
-                match key {
-                    Key::Right => {
+            Components::PredicateColumn => match key {
+                Key::Right => {
+                    self.predicate_list.unselect();
+                    self.direction_list.select();
+                    self.components = Components::DirectionColumn;
+                }
+                Key::Up => self.predicate_list.select_previous(),
+                Key::Down => {
+                    if self.predicate_list.selected == 2 {
                         self.predicate_list.unselect();
                         self.direction_list.select();
                         self.components = Components::DirectionColumn;
+                    } else {
+                        self.predicate_list.select_next();
                     }
-                    Key::Up => self.predicate_list.select_previous(),
-                    Key::Down => {
-                        if self.predicate_list.selected == 2 {
-                            self.predicate_list.unselect();
-                            self.direction_list.select();
-                            self.components = Components::DirectionColumn;
-                        } else {
-                            self.predicate_list.select_next();
-                        }
-                    }
-                    Key::Char('\n') => self.predicate_list.check_mark(),
-                    _ => {}
                 }
+                Key::Char('\n') => self.predicate_list.check_mark(),
+                _ => {}
             },
-            Components::DirectionColumn => {
-                match key {
-                    Key::Left => {
+            Components::DirectionColumn => match key {
+                Key::Left => {
+                    self.direction_list.unselect();
+                    self.predicate_list.select();
+                    self.components = Components::PredicateColumn;
+                }
+                Key::Up => self.direction_list.select_previous(),
+                Key::Down => {
+                    if self.direction_list.selected == 1 {
                         self.direction_list.unselect();
-                        self.predicate_list.select();
-                        self.components = Components::PredicateColumn;
+                        self.components = Components::Buttons;
+                    } else {
+                        self.direction_list.select_next();
                     }
-                    Key::Up => self.direction_list.select_previous(),
-                    Key::Down => {
-                        if self.direction_list.selected == 1 {
-                            self.direction_list.unselect();
-                            self.components = Components::Buttons;
-                        } else {
-                            self.direction_list.select_next();
-                        }
-                    }
-                    Key::Char('\n') => self.direction_list.check_mark(),
-                    _ => {}
                 }
+                Key::Char('\n') => self.direction_list.check_mark(),
+                _ => {}
             },
-            Components::Buttons => {
-                match key {
-                    Key::Left | Key::Right => self.focused_button = self.focused_button.next(),
-                    Key::Up => {
-                        self.predicate_list.select();
-                        self.components = Components::PredicateColumn;
-                    }
-                    Key::Down => {
-                        self.direction_list.select();
-                        self.components = Components::DirectionColumn;
-                    }
-                    Key::Char('\n') => {
-                        match self.focused_button {
-                            Buttons::Apply =>  self.apply(),
-                            Buttons::Cancel => {
-                                self.change_config = false;
-                                self.should_quit = true;
-                            },
-                        }
-                    }
-                    _ => {}
+            Components::Buttons => match key {
+                Key::Left | Key::Right => self.focused_button = self.focused_button.next(),
+                Key::Up => {
+                    self.predicate_list.select();
+                    self.components = Components::PredicateColumn;
                 }
+                Key::Down => {
+                    self.direction_list.select();
+                    self.components = Components::DirectionColumn;
+                }
+                Key::Char('\n') => match self.focused_button {
+                    Buttons::Apply => self.apply(),
+                    Buttons::Cancel => {
+                        self.change_config = false;
+                        self.should_quit = true;
+                    }
+                },
+                _ => {}
             },
         }
     }
@@ -318,14 +328,30 @@ impl BoxedDialog for SortingDialog {
     fn change_configuration(&mut self, config: &mut Configuration, active_panel: ActivePanel) {
         match active_panel {
             ActivePanel::Left => {
-                config.left_table_config_mut().set_predicate(String::from(self.predicate_list.predicate));
-                config.left_table_config_mut().set_sort_direction(String::from(self.direction_list.direction));
-                eprintln!("{} {}", config.left_table_config().sort_predicate(), config.left_table_config().sort_direction());
+                config
+                    .left_table_config_mut()
+                    .set_predicate(String::from(self.predicate_list.predicate));
+                config
+                    .left_table_config_mut()
+                    .set_sort_direction(String::from(self.direction_list.direction));
+                eprintln!(
+                    "{} {}",
+                    config.left_table_config().sort_predicate(),
+                    config.left_table_config().sort_direction()
+                );
             }
             ActivePanel::Right => {
-                config.right_table_config_mut().set_predicate(String::from(self.predicate_list.predicate));
-                config.right_table_config_mut().set_sort_direction(String::from(self.direction_list.direction));
-                eprintln!("{} {}", config.right_table_config().sort_predicate(), config.right_table_config().sort_direction());
+                config
+                    .right_table_config_mut()
+                    .set_predicate(String::from(self.predicate_list.predicate));
+                config
+                    .right_table_config_mut()
+                    .set_sort_direction(String::from(self.direction_list.direction));
+                eprintln!(
+                    "{} {}",
+                    config.right_table_config().sort_predicate(),
+                    config.right_table_config().sort_direction()
+                );
             }
         }
     }

@@ -78,7 +78,7 @@ impl TableSortDirection {
     }
 
     /// Returns the current variant as an usize value.
-    pub fn to_usize(&self) -> usize {
+    pub fn as_usize(&self) -> usize {
         match self {
             TableSortDirection::Ascending => 0,
             TableSortDirection::Descending => 1,
@@ -195,13 +195,13 @@ impl From<usize> for TableSortPredicate {
             PREDICATE_NAME => TableSortPredicate::Name,
             PREDICATE_SIZE => TableSortPredicate::Size,
             PREDICATE_LAST_MODIFIED => TableSortPredicate::LastModified,
-            _ => TableSortPredicate::default()
+            _ => TableSortPredicate::default(),
         }
     }
 }
 
 impl TableSortPredicate {
-    pub fn to_usize(&self) -> usize {
+    pub fn as_usize(&self) -> usize {
         match self {
             TableSortPredicate::Name => PREDICATE_NAME,
             TableSortPredicate::Size => PREDICATE_SIZE,
@@ -620,27 +620,45 @@ mod test {
 
     #[test]
     fn test_predicate_to_usize() {
-        assert_eq!(TableSortPredicate::Name.to_usize(), PREDICATE_NAME);
-        assert_eq!(TableSortPredicate::Size.to_usize(), PREDICATE_SIZE);
-        assert_eq!(TableSortPredicate::LastModified.to_usize(), PREDICATE_LAST_MODIFIED);
+        assert_eq!(TableSortPredicate::Name.as_usize(), PREDICATE_NAME);
+        assert_eq!(TableSortPredicate::Size.as_usize(), PREDICATE_SIZE);
+        assert_eq!(
+            TableSortPredicate::LastModified.as_usize(),
+            PREDICATE_LAST_MODIFIED
+        );
     }
 
     #[test]
     fn test_direction_to_usize() {
-        assert_eq!(TableSortDirection::Ascending.to_usize(), DIRECTION_ASC);
-        assert_eq!(TableSortDirection::Descending.to_usize(), DIRECTION_DESC);
+        assert_eq!(TableSortDirection::Ascending.as_usize(), DIRECTION_ASC);
+        assert_eq!(TableSortDirection::Descending.as_usize(), DIRECTION_DESC);
     }
 
     #[test]
     fn test_predicate_from_usize() {
-        assert_eq!(TableSortPredicate::from(PREDICATE_NAME), TableSortPredicate::Name);
-        assert_eq!(TableSortPredicate::from(PREDICATE_SIZE), TableSortPredicate::Size);
-        assert_eq!(TableSortPredicate::from(PREDICATE_LAST_MODIFIED), TableSortPredicate::LastModified);
+        assert_eq!(
+            TableSortPredicate::from(PREDICATE_NAME),
+            TableSortPredicate::Name
+        );
+        assert_eq!(
+            TableSortPredicate::from(PREDICATE_SIZE),
+            TableSortPredicate::Size
+        );
+        assert_eq!(
+            TableSortPredicate::from(PREDICATE_LAST_MODIFIED),
+            TableSortPredicate::LastModified
+        );
     }
 
     #[test]
     fn test_direction_from_usize() {
-        assert_eq!(TableSortDirection::from(DIRECTION_ASC), TableSortDirection::Ascending);
-        assert_eq!(TableSortDirection::from(DIRECTION_DESC), TableSortDirection::Descending);
+        assert_eq!(
+            TableSortDirection::from(DIRECTION_ASC),
+            TableSortDirection::Ascending
+        );
+        assert_eq!(
+            TableSortDirection::from(DIRECTION_DESC),
+            TableSortDirection::Descending
+        );
     }
 }
