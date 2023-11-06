@@ -2,7 +2,6 @@ use super::{TransferProgress, TransferStrategy};
 use crate::core::calculate_progress_percentage;
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
-    default,
     io::Stdout,
     path::Path,
     sync::mpsc::{Receiver, TryRecvError},

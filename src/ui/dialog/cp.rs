@@ -6,7 +6,8 @@ use fs_extra::dir::{
 use std::{
     path::{Path, PathBuf},
     sync::mpsc::Sender,
-    thread, time::Duration,
+    thread,
+    time::Duration,
 };
 
 pub struct CopyStrategy;

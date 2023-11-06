@@ -7,7 +7,8 @@ use fs_extra::{
 };
 use std::{
     path::{Path, PathBuf},
-    thread, time::Duration,
+    thread,
+    time::Duration,
 };
 
 pub struct MoveStrategy;
