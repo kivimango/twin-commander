@@ -1,7 +1,5 @@
-use serde::de;
-
 use crate::core::list_dir::DirContent;
-use std::{cmp::Ordering, default};
+use std::cmp::Ordering;
 
 const PREDICATE_NAME: usize = 0;
 const PREDICATE_SIZE: usize = 1;

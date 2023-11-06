@@ -1,8 +1,5 @@
 use super::{centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
-use crate::{
-    core::config::{Configuration, TableConfiguration},
-    ui::RenderWidget,
-};
+use crate::core::config::{Configuration, TableConfiguration};
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
     io::Stdout,
