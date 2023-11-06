@@ -2,6 +2,7 @@ use super::{TransferProgress, TransferStrategy};
 use crate::core::calculate_progress_percentage;
 use humansize::{SizeFormatter, DECIMAL};
 use std::{
+    default,
     io::Stdout,
     path::Path,
     sync::mpsc::{Receiver, TryRecvError},
@@ -32,16 +33,12 @@ impl Buttons {
     }
 }
 
+#[derive(Default)]
 enum TransferDialogStatus {
+    #[default]
     WaitingForConfirmation,
     Transfering,
     TransferFinished,
-}
-
-impl Default for TransferDialogStatus {
-    fn default() -> Self {
-        TransferDialogStatus::WaitingForConfirmation
-    }
 }
 
 pub struct TransferDialog<T> {
