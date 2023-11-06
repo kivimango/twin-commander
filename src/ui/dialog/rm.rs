@@ -23,16 +23,12 @@ impl Buttons {
     }
 }
 
+#[derive(Default)]
 pub enum DeleteDialogState {
+    #[default]
     WaitingForConfirmation,
     Deleting,
     Deleted,
-}
-
-impl Default for DeleteDialogState {
-    fn default() -> Self {
-        DeleteDialogState::WaitingForConfirmation
-    }
 }
 
 pub struct RmDirDialog {
