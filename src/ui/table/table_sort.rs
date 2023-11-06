@@ -1,5 +1,7 @@
+use serde::de;
+
 use crate::core::list_dir::DirContent;
-use std::cmp::Ordering;
+use std::{cmp::Ordering, default};
 
 const PREDICATE_NAME: usize = 0;
 const PREDICATE_SIZE: usize = 1;
@@ -13,13 +15,14 @@ pub(crate) trait SortBy {
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
 /// Default is TableSortDirection::Ascending.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub enum TableSortDirection {
     // Values are arranged from the lowest to the highest.
     /// The lowest value will be placed on the top of the
     /// table. Sorting will continue and place the next increasing
     /// value in the row unit until it reaches the highest value that is
     /// placed on the bottom of the table.
+    #[default]
     Ascending,
     /// Values are arranged from the highest to the lowest.
     /// The highest value will be placed on the top of the
@@ -29,11 +32,11 @@ pub enum TableSortDirection {
     Descending,
 }
 
-impl Default for TableSortDirection {
+/*impl Default for TableSortDirection {
     fn default() -> Self {
         TableSortDirection::Ascending
     }
-}
+}*/
 
 impl From<&String> for TableSortDirection {
     fn from(value: &String) -> Self {
@@ -151,18 +154,19 @@ fn get_type_by(direction: TableSortDirection, predicate: TableSortPredicate) -> 
 
 /// Defines the column on which the TableView should be sorted by.
 /// Default is TableSortPredicate::Name.
-#[derive(Copy, Clone, Debug, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq)]
 pub enum TableSortPredicate {
+    #[default]
     Name,
     Size,
     LastModified,
 }
 
-impl Default for TableSortPredicate {
+/*impl Default for TableSortPredicate {
     fn default() -> Self {
         TableSortPredicate::Name
     }
-}
+}*/
 
 impl From<&String> for TableSortPredicate {
     fn from(value: &String) -> Self {
