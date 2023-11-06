@@ -59,22 +59,12 @@ impl SubMenu {
 }
 
 /// Represents the menubar starting from the upper left corner.
+#[derive(Default)]
 pub struct Menu<'block> {
     style: Style,
     item_style: Style,
     selected_item_style: Style,
     submenu_block: Option<Block<'block>>,
-}
-
-impl Default for Menu<'_> {
-    fn default() -> Self {
-        Menu {
-            style: Style::default(),
-            item_style: Style::default(),
-            selected_item_style: Style::default(),
-            submenu_block: None,
-        }
-    }
 }
 
 impl<'block> Menu<'block> {
