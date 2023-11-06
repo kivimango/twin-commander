@@ -440,8 +440,8 @@ impl UserInterface {
                 let predicate = self.left_panel.sort_predicate();
                 let direction = self.left_panel.sort_direction();
                 self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(
-                    predicate.into(),
-                    direction.into(),
+                    predicate,
+                    direction,
                 ))));
             }
             1 => {
@@ -452,8 +452,8 @@ impl UserInterface {
                 let predicate = self.right_panel.sort_predicate();
                 let direction = self.right_panel.sort_direction();
                 self.dialog = Some(Dialog::Menu(Box::new(SortingDialog::new(
-                    predicate.into(),
-                    direction.into(),
+                    predicate,
+                    direction,
                 ))));
             }
             _ => {}
