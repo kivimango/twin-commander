@@ -72,7 +72,7 @@ impl Application {
                 match event {
                     Event::Input(key) => match &self.input_mode {
                         InputMode::Normal => match key {
-                            Key::Esc => should_quit = true,
+                            Key::Esc | Key::F(10) => should_quit = true,
                             _ => {
                                 ui.handle_key(key, self);
                             }
