@@ -5,6 +5,7 @@ use std::path::Path;
 use std::sync::mpsc::Sender;
 
 mod cp;
+mod help;
 mod menu;
 mod mkdir;
 mod mv;
@@ -12,6 +13,7 @@ mod rm;
 mod transfer;
 
 pub use self::cp::*;
+pub use self::help::*;
 pub use self::menu::*;
 pub use self::mkdir::*;
 pub use self::mv::*;

@@ -1,6 +1,6 @@
 use super::{
-    centered_rect, fixed_height_centered_rect, BottomMenu, BoxedDialog, CopyStrategy, Menu,
-    MenuState, MkDirDialog, MoveStrategy, PanelOpionsDialog, RmDirDialog, SortingDialog,
+    centered_rect, fixed_height_centered_rect, BottomMenu, BoxedDialog, CopyStrategy, HelpDialog,
+    Menu, MenuState, MkDirDialog, MoveStrategy, PanelOpionsDialog, RmDirDialog, SortingDialog,
     TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
@@ -31,6 +31,7 @@ impl ActivePanel {
 }
 
 enum Dialog {
+    Help(HelpDialog),
     Copy(TransferDialog<CopyStrategy>),
     Move(TransferDialog<MoveStrategy>),
     MkDir(MkDirDialog),
@@ -126,6 +127,11 @@ impl UserInterface {
             // render dialog on top of content if it has...
             if let Some(dialog) = &mut self.dialog {
                 match dialog {
+                    Dialog::Help(help_dialog) => {
+                        let area = fixed_height_centered_rect(75, 14, frame_size);
+                        frame.render_widget(Clear, area);
+                        help_dialog.render(frame, area);
+                    }
                     Dialog::Copy(transfer_dialog) => {
                         let area = fixed_height_centered_rect(50, 8, frame_size);
                         frame.render_widget(Clear, area);
@@ -197,6 +203,10 @@ impl UserInterface {
                     .active_panel_mut()
                     .set_direction(TableSortDirection::Descending),
                 // Bottom menu
+                Key::F(1) => {
+                    app.set_input_mode(InputMode::Editing);
+                    self.create_help_dialog();
+                }
                 // Copy file(s) dialog
                 Key::F(5) => {
                     if let Ok(copy_dialog) = self.create_copy_dialog() {
@@ -259,6 +269,9 @@ impl UserInterface {
             InputMode::Editing => {
                 if let Some(dialog) = &mut self.dialog {
                     match dialog {
+                        Dialog::Help(help_dialog) => {
+                            help_dialog.handle_key(key);
+                        }
                         Dialog::Copy(copy_dialog) => match key {
                             Key::Char('\n') => copy_dialog.handle_key(key),
                             Key::Esc => self.close_dialog(app),
@@ -304,6 +317,11 @@ impl UserInterface {
     pub(crate) fn tick(&mut self, app: &mut Application) {
         if let Some(dialog) = &mut self.dialog {
             match dialog {
+                Dialog::Help(help_dialog) => {
+                    if help_dialog.should_quit() {
+                        self.close_dialog(app)
+                    }
+                }
                 Dialog::Copy(copy_dialog) => {
                     copy_dialog.tick();
                     if copy_dialog.should_quit() {
@@ -367,6 +385,10 @@ impl UserInterface {
             ActivePanel::Left => &mut self.left_panel,
             ActivePanel::Right => &mut self.right_panel,
         }
+    }
+
+    fn create_help_dialog(&mut self) {
+        self.dialog = Some(Dialog::Help(HelpDialog::new()));
     }
 
     fn create_move_dialog(&self) -> Result<TransferDialog<MoveStrategy>, ShowDialogError> {
