@@ -50,13 +50,14 @@ pub struct TransferDialog<T> {
     rx: Option<Receiver<TransferProgress>>,
     should_quit: bool,
     start_time: Instant,
+    title: String,
 }
 
 impl<T> TransferDialog<T>
 where
     T: TransferStrategy,
 {
-    pub(crate) fn new<P: AsRef<Path>>(source: P, destination: P, transfer_model: T) -> Self {
+    pub(crate) fn new<P: AsRef<Path>>(source: P, destination: P, transfer_model: T, title: String) -> Self {
         TransferDialog {
             copy_progress: TransferProgress::None,
             focused_button: Buttons::Ok,
@@ -67,6 +68,7 @@ where
             rx: None,
             should_quit: false,
             start_time: Instant::now(),
+            title
         }
     }
 
@@ -164,7 +166,7 @@ where
         let block = Block::default()
             .border_type(tui::widgets::BorderType::Rounded)
             .borders(Borders::ALL)
-            .title("Copy file(s)")
+            .title(self.title.as_ref())
             .title_alignment(Alignment::Center);
         let label_src = Paragraph::new(Text::styled("Source:", Style::default().fg(Color::White)));
         let label_src_path = Paragraph::new(Text::styled(

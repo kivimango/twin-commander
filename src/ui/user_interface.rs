@@ -408,6 +408,7 @@ impl UserInterface {
                     PathBuf::from(source),
                     PathBuf::from(destination),
                     MoveStrategy,
+                    String::from("Move file(s)")
                 ))
             } else {
                 Err(ShowDialogError::NoSelectedSource)
@@ -432,6 +433,7 @@ impl UserInterface {
                     PathBuf::from(source),
                     PathBuf::from(destination),
                     CopyStrategy,
+                    String::from("Copy file(s)")
                 ))
             } else {
                 Err(ShowDialogError::NoSelectedSource)
