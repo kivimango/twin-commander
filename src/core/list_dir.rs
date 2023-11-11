@@ -72,6 +72,7 @@ pub struct FilterOptions {
     pub show_hidden_files: bool,
 }
 
+#[allow(unused)]
 impl FilterOptions {
     pub fn new() -> Self {
         FilterOptions::default()
@@ -94,18 +95,12 @@ impl FilterOptions {
 /// read those values.
 pub fn list_dir(dir: &Path, filter_options: &FilterOptions) -> Result<Vec<DirContent>, Error> {
     let result: Vec<DirContent> = fs::read_dir(dir)?
-        .into_iter()
-        .filter(|result| result.is_ok())
-        // is it safe to unwarp here, we already have only the ok variants
-        .map(|entry| entry.unwrap())
+        .filter_map(|result| result.ok())
         .filter(|entry| {
-            if filter_options.show_hidden_files {
-                true
-            } else {
-                !entry.file_name().to_string_lossy().starts_with(".")
-            }
+            filter_options.show_hidden_files
+                || !entry.file_name().to_string_lossy().starts_with('.')
         })
-        .map(|entry| DirContent::from(entry))
+        .map(DirContent::from)
         .collect();
 
     Ok(result)
