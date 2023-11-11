@@ -4,7 +4,7 @@ use super::{
     TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
-use crate::core::config::{Configuration, TableConfiguration};
+use crate::core::config::Configuration;
 use std::io::Stdout;
 use std::path::PathBuf;
 use termion::event::Key;
@@ -350,12 +350,12 @@ impl UserInterface {
                             let selected_menu_item = self.top_menu.selected_item();
                             match selected_menu_item {
                                 // Left panel menu
-                                0 => change_config(
-                                    dialog,
-                                    &mut self.left_panel,
-                                    &mut self.config,
-                                    ActivePanel::Left,
-                                ),
+                                0 => {
+                                    dialog
+                                        .change_configuration(&mut self.config, self.active_panel);
+                                    self.left_panel
+                                        .update_config(self.config.left_table_config());
+                                }
                                 // Panel options
                                 1 => {
                                     dialog
@@ -364,12 +364,12 @@ impl UserInterface {
                                     self.right_panel.change_config(&self.config);
                                 }
                                 // Right panel menu
-                                2 => change_config(
-                                    dialog,
-                                    &mut self.right_panel,
-                                    &mut self.config,
-                                    ActivePanel::Right,
-                                ),
+                                2 => {
+                                    dialog
+                                        .change_configuration(&mut self.config, self.active_panel);
+                                    self.right_panel
+                                        .update_config(self.config.right_table_config());
+                                }
                                 _ => {}
                             }
                         }
@@ -514,21 +514,4 @@ impl UserInterface {
         self.dialog = None;
         self.focused_widget = Widgets::TwinPanel;
     }
-}
-
-fn change_config(
-    dialog: &mut Box<dyn BoxedDialog>,
-    table: &mut TableView,
-    config: &mut Configuration,
-    panel: ActivePanel,
-) {
-    dialog.change_configuration(config, panel);
-    let path = table.pwd().to_path_buf();
-    let predicate = table.sort_predicate();
-    let direction = table.sort_direction();
-    let mut tc = TableConfiguration::default();
-    tc.set_path(path.to_owned());
-    tc.set_predicate(predicate.into());
-    tc.set_sort_direction(direction.into());
-    table.update_config(tc);
 }
