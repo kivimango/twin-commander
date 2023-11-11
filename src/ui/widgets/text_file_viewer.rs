@@ -1,3 +1,4 @@
+#![allow(unused, dead_code)]
 use super::RenderWidget;
 use std::fs::{File, OpenOptions};
 use std::io::{self, Read, Stdout};

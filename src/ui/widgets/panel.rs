@@ -1,6 +1,6 @@
-use std::io::Stdout;
-
+#![allow(unused, dead_code)]
 use super::RenderWidget;
+use std::io::Stdout;
 use termion::raw::RawTerminal;
 use tui::{backend::TermionBackend, layout::Rect, Frame};
 

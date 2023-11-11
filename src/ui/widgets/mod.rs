@@ -9,6 +9,7 @@ pub use self::panel::*;
 pub use self::text_file_viewer::*;
 
 /// A list of available widgets to use in a `Panel`.
+#[allow(unused)]
 pub enum Widgets {
     /// Displays the content of the working directory in a table-like format.
     Table,
