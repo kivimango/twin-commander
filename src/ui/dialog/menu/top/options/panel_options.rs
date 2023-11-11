@@ -15,7 +15,7 @@ use tui::{
     Frame,
 };
 
-const CHECK_MARK: &'static str = "X";
+const CHECK_MARK: &str = "X";
 
 enum Buttons {
     Apply,
