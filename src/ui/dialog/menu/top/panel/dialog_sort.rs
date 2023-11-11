@@ -334,11 +334,6 @@ impl BoxedDialog for SortingDialog {
                 config
                     .left_table_config_mut()
                     .set_sort_direction(String::from(self.direction_list.direction));
-                eprintln!(
-                    "{} {}",
-                    config.left_table_config().sort_predicate(),
-                    config.left_table_config().sort_direction()
-                );
             }
             ActivePanel::Right => {
                 config
@@ -347,11 +342,6 @@ impl BoxedDialog for SortingDialog {
                 config
                     .right_table_config_mut()
                     .set_sort_direction(String::from(self.direction_list.direction));
-                eprintln!(
-                    "{} {}",
-                    config.right_table_config().sort_predicate(),
-                    config.right_table_config().sort_direction()
-                );
             }
         }
     }
