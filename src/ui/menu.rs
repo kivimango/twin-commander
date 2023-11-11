@@ -5,7 +5,7 @@ use tui::{
     layout::Rect,
     style::Style,
     text::Span,
-    widgets::{Block, StatefulWidget, Widget},
+    widgets::{Block, StatefulWidget, Widget, Clear},
 };
 
 struct MenuItem {
@@ -288,13 +288,13 @@ fn render_dropdown(
     let dropdown_area = match menu.submenu_block.take() {
         Some(block) => {
             let inner_area = block.inner(area);
+            Clear.render(area, buffer);
             block.render(area, buffer);
             buffer.set_style(inner_area, menu.item_style);
             inner_area
         }
         None => area,
     };
-    //Clear.render(dropdown_area, buffer);
 
     for (idx, item) in group.iter().enumerate() {
         let item_y = dropdown_area.top() + idx as u16;
