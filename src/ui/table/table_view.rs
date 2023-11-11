@@ -264,7 +264,7 @@ impl TableView {
         self.model.sort_predicate()
     }
 
-    pub fn update_config(&mut self, new_config: TableConfiguration) {
+    pub fn update_config(&mut self, new_config: &TableConfiguration) {
         self.model
             .set_sort_predicate(TableSortPredicate::from(new_config.sort_predicate()));
         self.model
