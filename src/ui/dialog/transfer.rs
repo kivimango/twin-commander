@@ -57,7 +57,12 @@ impl<T> TransferDialog<T>
 where
     T: TransferStrategy,
 {
-    pub(crate) fn new<P: AsRef<Path>>(source: P, destination: P, transfer_model: T, title: String) -> Self {
+    pub(crate) fn new<P: AsRef<Path>>(
+        source: P,
+        destination: P,
+        transfer_model: T,
+        title: String,
+    ) -> Self {
         TransferDialog {
             copy_progress: TransferProgress::None,
             focused_button: Buttons::Ok,
@@ -68,7 +73,7 @@ where
             rx: None,
             should_quit: false,
             start_time: Instant::now(),
-            title
+            title,
         }
     }
 

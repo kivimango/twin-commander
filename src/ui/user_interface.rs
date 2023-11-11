@@ -391,11 +391,19 @@ impl UserInterface {
         let right_sort_dir = self.right_panel.sort_direction();
 
         self.config.left_table_config_mut().set_path(left_path);
-        self.config.left_table_config_mut().set_predicate(left_sort_predicate.into());
-        self.config.left_table_config_mut().set_sort_direction(left_sort_dir.into());
+        self.config
+            .left_table_config_mut()
+            .set_predicate(left_sort_predicate.into());
+        self.config
+            .left_table_config_mut()
+            .set_sort_direction(left_sort_dir.into());
         self.config.right_table_config_mut().set_path(right_path);
-        self.config.right_table_config_mut().set_predicate(right_sort_predicate.into());
-        self.config.right_table_config_mut().set_sort_direction(right_sort_dir.into());
+        self.config
+            .right_table_config_mut()
+            .set_predicate(right_sort_predicate.into());
+        self.config
+            .right_table_config_mut()
+            .set_sort_direction(right_sort_dir.into());
     }
 
     fn active_panel_mut(&mut self) -> &mut TableView {
@@ -426,7 +434,7 @@ impl UserInterface {
                     PathBuf::from(source),
                     PathBuf::from(destination),
                     MoveStrategy,
-                    String::from("Move file(s)")
+                    String::from("Move file(s)"),
                 ))
             } else {
                 Err(ShowDialogError::NoSelectedSource)
@@ -451,7 +459,7 @@ impl UserInterface {
                     PathBuf::from(source),
                     PathBuf::from(destination),
                     CopyStrategy,
-                    String::from("Copy file(s)")
+                    String::from("Copy file(s)"),
                 ))
             } else {
                 Err(ShowDialogError::NoSelectedSource)
