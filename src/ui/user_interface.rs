@@ -380,6 +380,24 @@ impl UserInterface {
         }
     }
 
+    /// Collects the configuration values from widgets that may changed during runtime,
+    /// and updates the current configuration with those changes.
+    pub fn update_config(&mut self) {
+        let left_path = PathBuf::from(self.left_panel.pwd());
+        let left_sort_predicate = self.left_panel.sort_predicate();
+        let left_sort_dir = self.left_panel.sort_direction();
+        let right_path = PathBuf::from(self.right_panel.pwd());
+        let right_sort_predicate = self.right_panel.sort_predicate();
+        let right_sort_dir = self.right_panel.sort_direction();
+
+        self.config.left_table_config_mut().set_path(left_path);
+        self.config.left_table_config_mut().set_predicate(left_sort_predicate.into());
+        self.config.left_table_config_mut().set_sort_direction(left_sort_dir.into());
+        self.config.right_table_config_mut().set_path(right_path);
+        self.config.right_table_config_mut().set_predicate(right_sort_predicate.into());
+        self.config.right_table_config_mut().set_sort_direction(right_sort_dir.into());
+    }
+
     fn active_panel_mut(&mut self) -> &mut TableView {
         match &self.active_panel {
             ActivePanel::Left => &mut self.left_panel,
@@ -497,12 +515,12 @@ fn change_config(
     panel: ActivePanel,
 ) {
     dialog.change_configuration(config, panel);
-    let path = config.left_table_config().path().clone();
-    let predicate = config.left_table_config().sort_predicate();
-    let direction = config.left_table_config().sort_direction();
+    let path = table.pwd().to_path_buf();
+    let predicate = table.sort_predicate();
+    let direction = table.sort_direction();
     let mut tc = TableConfiguration::default();
     tc.set_path(path.to_owned());
-    tc.set_predicate(predicate.to_string());
-    tc.set_sort_direction(direction.to_string());
+    tc.set_predicate(predicate.into());
+    tc.set_sort_direction(direction.into());
     table.update_config(tc);
 }

@@ -84,6 +84,7 @@ impl Application {
             }
         }
         // temporary solution to avoid Rc<RefCell<Configuration> everywhere in the ui
+        ui.update_config();
         let config_to_save = ui.config();
         save_config(config_to_save);
     }
