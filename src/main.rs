@@ -1,10 +1,9 @@
-use app::Application;
+use app::ApplicationModel;
 use std::error::Error;
 use tuirealm::terminal::TerminalBridge;
 
 mod app;
 mod core;
-mod event;
 mod ui;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -14,7 +13,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.raw_mut().hide_cursor()?;
 
     // Initialize the app and run the event loop
-    let mut app = Application::new();
+    let mut app = ApplicationModel::new();
     app.run(&mut terminal);
 
     // Restore terminal and close the application
