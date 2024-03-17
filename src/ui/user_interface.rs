@@ -1,6 +1,6 @@
 use super::{
     centered_rect, fixed_height_centered_rect, BottomMenu, BoxedDialog, CopyStrategy, HelpDialog,
-    Menu, MenuState, MkDirDialog, MoveStrategy, PanelOpionsDialog, RmDirDialog, SortingDialog,
+    TopMenu, MenuState, MkDirDialog, MoveStrategy, PanelOpionsDialog, RmDirDialog, SortingDialog,
     TableSortDirection, TableSortPredicate, TableView, TransferDialog,
 };
 use crate::app::{Application, InputMode};
@@ -110,7 +110,7 @@ impl UserInterface {
         {
             // Render top menu at last.
             // If expanded, menu will be drawn on top of content
-            let top_menu = Menu::default()
+            let top_menu = TopMenu::new()
                 .style(Style::default().bg(Color::Cyan).fg(Color::White))
                 .item_style(Style::default().bg(Color::Cyan).fg(Color::Gray))
                 .selected_item_style(Style::default().bg(Color::Black).fg(Color::White))
