@@ -1,17 +1,19 @@
 use super::{centered_rect, table_model::TableViewModel, TableSortDirection, TableSortPredicate};
-use crate::core::config::{Configuration, TableConfiguration};
-use humansize::{SizeFormatter, DECIMAL};
-use std::{
-    io::Stdout,
-    path::{Path, PathBuf},
+use crate::{
+    app::ApplicationMessage,
+    core::config::{Configuration, TableConfiguration},
 };
-use termion::raw::RawTerminal;
-use tui::{
-    backend::TermionBackend,
-    layout::{Alignment, Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
-    widgets::{Block, Borders, Cell, Clear, Paragraph, Row, Table, Wrap},
-    Frame,
+use humansize::{SizeFormatter, DECIMAL};
+use std::path::{Path, PathBuf};
+use tuirealm::{
+    command::{Cmd, CmdResult, Direction},
+    event::Key,
+    props::{Alignment, BorderSides, Color, Style, TextModifiers},
+    tui::{
+        layout::{Constraint, Rect},
+        widgets::{Block, Cell, Clear, Paragraph, Row, Table, Wrap},
+    },
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
 };
 
 //const CELL_HEADERS: [&str; 3] = ["Name", "Size", "Last modified"];
@@ -33,9 +35,9 @@ const HEADER_LOOKUP_TABLE: [[&str; 3]; 6] = [
 ];
 
 /// Displays a directory's content with details in a table format.
+#[derive(MockComponent)]
 pub struct TableView {
-    model: TableViewModel,
-    is_active: bool,
+    component: TableViewMock,
 }
 
 impl TableView {
@@ -45,11 +47,48 @@ impl TableView {
         model.refresh();
 
         TableView {
-            model,
-            is_active: false,
+            component: TableViewMock {
+                model,
+                properties: Props::default(),
+                is_active: false,
+            },
         }
     }
+}
 
+impl Component<ApplicationMessage, NoUserEvent> for TableView {
+    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        let command = match event {
+            Event::Keyboard(keyboard_event) => match keyboard_event.code {
+                Key::Up => {
+                    Cmd::Move(Direction::Up)
+                }
+                Key::Down => {
+                    Cmd::Move(Direction::Down)
+                }
+                Key::Tab => Cmd::Change,
+                _ => Cmd::None,
+            },
+            _ => Cmd::None,
+        };
+
+        match self.component.perform(command) {
+            /*CmdResult::Changed(State::One(StateValue::Isize(selected_idx))) => {
+                let s = self.component.model.state.selected().unwrap();
+                Some(ApplicationMessage::TableSelectionChanged(s))
+            }*/
+            _ => None,
+        }
+    }
+}
+
+struct TableViewMock {
+    properties: Props,
+    is_active: bool,
+    model: TableViewModel,
+}
+
+impl TableViewMock {
     pub fn activate(&mut self) {
         self.is_active = true;
 
@@ -143,85 +182,6 @@ impl TableView {
         self.model.pwd()
     }
 
-    pub fn render_table(
-        &mut self,
-        main_layout: Rect,
-        panel_idx: usize,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
-    ) {
-        let table_layout = Layout::default()
-            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
-            .direction(tui::layout::Direction::Horizontal)
-            .split(main_layout);
-        let header_cells = header_cells(self.model.sort_predicate(), self.model.sort_direction());
-        let table_header = Row::new(header_cells).height(1);
-
-        if let Some(error) = self.model.last_error() {
-            let popup = Paragraph::new(error.to_string())
-                .block(
-                    Block::default()
-                        .title("Error")
-                        .borders(Borders::ALL)
-                        .style(Style::default().bg(Color::LightRed).fg(Color::White)),
-                )
-                .wrap(Wrap { trim: false })
-                .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
-                .alignment(Alignment::Center);
-            let area = centered_rect(50, 25, table_layout[panel_idx]);
-            frame.render_widget(Clear, area);
-            frame.render_widget(popup, area);
-        }
-
-        let file_list = self
-            .model
-            .files()
-            .iter()
-            .map(|file| {
-                let cell_style = match file.is_dir {
-                    true => Style::default()
-                        .bg(Color::Blue)
-                        .fg(Color::White)
-                        .add_modifier(Modifier::BOLD),
-                    false => Style::default().bg(Color::Blue).fg(Color::White),
-                };
-                let size_cell = match file.size {
-                    Some(size) => Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL))),
-                    None => Cell::from("<DIR>"),
-                };
-                Row::new(vec![
-                    Cell::style(Cell::from(file.name.clone()), cell_style),
-                    Cell::style(size_cell, cell_style),
-                    Cell::style(Cell::from(file.date.clone()), cell_style),
-                ])
-            })
-            .collect::<Vec<Row>>();
-
-        let selected_style = match self.is_active {
-            true => Style::default().fg(Color::Black).bg(Color::Red),
-            false => Style::default()
-                .fg(Color::Black)
-                .bg(Color::Red)
-                .add_modifier(Modifier::REVERSED),
-        };
-        let cwd = String::from(self.model.pwd().to_str().unwrap());
-        let name_column_width = table_layout[0].width - 3 - (8 + 16);
-        let widths = [
-            Constraint::Length(name_column_width),
-            Constraint::Length(8),
-            Constraint::Length(16),
-        ];
-
-        let table_view = Table::new(file_list)
-            .block(Block::default().title(cwd).borders(Borders::ALL))
-            .widths(&widths)
-            .header(table_header)
-            .highlight_style(selected_style)
-            .style(Style::default().bg(Color::Blue).fg(Color::White))
-            .column_spacing(0);
-
-        frame.render_stateful_widget(table_view, table_layout[panel_idx], self.model.state_mut());
-    }
-
     pub fn select_first(&mut self) {
         if self.model.files().is_empty() {
             return;
@@ -276,6 +236,94 @@ impl TableView {
     pub fn set_direction(&mut self, direction: TableSortDirection) {
         self.model.set_sort_direction(direction);
         self.model.sort();
+    }
+}
+
+impl MockComponent for TableViewMock {
+    fn attr(&mut self, attr: Attribute, value: AttrValue) {
+        self.properties.set(attr, value)
+    }
+
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
+        CmdResult::None
+    }
+
+    fn query(&self, attr: Attribute) -> Option<AttrValue> {
+        self.properties.get(attr)
+    }
+
+    fn state(&self) -> State {
+        State::None
+    }
+
+    fn view(&mut self, frame: &mut Frame, area: Rect) {
+        let header_cells = header_cells(self.model.sort_predicate(), self.model.sort_direction());
+        let table_header = Row::new(header_cells).height(1);
+
+        if let Some(error) = self.model.last_error() {
+            let popup = Paragraph::new(error.to_string())
+                .block(
+                    Block::default()
+                        .title("Error")
+                        .borders(BorderSides::ALL)
+                        .style(Style::default().bg(Color::LightRed).fg(Color::White)),
+                )
+                .wrap(Wrap { trim: false })
+                .style(Style::default().bg(Color::LightRed).fg(Color::Gray))
+                .alignment(Alignment::Center);
+            let area = centered_rect(50, 25, area);
+            frame.render_widget(Clear, area);
+            frame.render_widget(popup, area);
+        }
+
+        let file_list = self
+            .model
+            .files()
+            .iter()
+            .map(|file| {
+                let cell_style = match file.is_dir {
+                    true => Style::default()
+                        .bg(Color::Blue)
+                        .fg(Color::White)
+                        .add_modifier(TextModifiers::BOLD),
+                    false => Style::default().bg(Color::Blue).fg(Color::White),
+                };
+                let size_cell = match file.size {
+                    Some(size) => Cell::from(format!("{}", SizeFormatter::new(size, DECIMAL))),
+                    None => Cell::from("<DIR>"),
+                };
+                Row::new(vec![
+                    Cell::style(Cell::from(file.name.clone()), cell_style),
+                    Cell::style(size_cell, cell_style),
+                    Cell::style(Cell::from(file.date.clone()), cell_style),
+                ])
+            })
+            .collect::<Vec<Row>>();
+
+        let selected_style = match self.is_active {
+            true => Style::default().fg(Color::Black).bg(Color::Red),
+            false => Style::default()
+                .fg(Color::Black)
+                .bg(Color::Red)
+                .add_modifier(TextModifiers::REVERSED),
+        };
+        let cwd = String::from(self.model.pwd().to_str().unwrap());
+        let name_column_width = area.width - 3 - (8 + 16);
+        let widths = [
+            Constraint::Length(name_column_width),
+            Constraint::Length(8),
+            Constraint::Length(16),
+        ];
+
+        let table_view = Table::new(file_list)
+            .block(Block::default().title(cwd).borders(BorderSides::ALL))
+            .widths(&widths)
+            .header(table_header)
+            .highlight_style(selected_style)
+            .style(Style::default().bg(Color::Blue).fg(Color::White))
+            .column_spacing(0);
+
+        frame.render_stateful_widget(table_view, area, self.model.state_mut());
     }
 }
 
