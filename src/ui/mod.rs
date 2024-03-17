@@ -1,18 +1,28 @@
 use tui::layout::{Constraint, Direction, Layout, Rect};
 
 mod bottom_menu;
-mod dialog;
+//mod dialog;
 mod menu;
 mod table;
-mod user_interface;
-mod widgets;
+//mod user_interface;
+//mod widgets;
 
 pub use self::bottom_menu::*;
-pub use self::dialog::*;
+//pub use self::dialog::*;
 pub use self::menu::*;
 pub use self::table::*;
-pub use self::user_interface::UserInterface;
-pub use self::widgets::*;
+//pub use self::user_interface::UserInterface;
+//pub use self::widgets::*;
+pub use self::TopMenuMessage::*;
+
+/// A list of available widgets to use in a `Panel`.
+#[allow(unused)]
+pub enum Widgets {
+    /// Displays the content of the working directory in a table-like format.
+    Table,
+    /// Displays the contents of a text file.
+    TextFileViewer,
+}
 
 /// Helper function to create a centered rect with a fixed height
 /// and using up certain percentage of the available of width of `r`.
