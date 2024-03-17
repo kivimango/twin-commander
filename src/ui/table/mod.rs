@@ -2,10 +2,10 @@ mod table_model;
 mod table_sort;
 mod table_view;
 
-use tui::layout::Constraint;
-use tui::layout::Direction;
-use tui::layout::Layout;
-use tui::layout::Rect;
+use tuirealm::tui::layout::Constraint;
+use tuirealm::tui::layout::Direction;
+use tuirealm::tui::layout::Layout;
+use tuirealm::tui::layout::Rect;
 
 pub use self::table_sort::*;
 pub use self::table_view::*;
