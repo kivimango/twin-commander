@@ -7,7 +7,7 @@ use std::{
     io::Error,
     path::{Path, PathBuf},
 };
-use tui::widgets::TableState;
+use tuirealm::tui::widgets::TableState;
 
 pub(crate) struct TableViewModel {
     cwd: PathBuf,
