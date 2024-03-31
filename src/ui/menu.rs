@@ -133,7 +133,7 @@ impl Component<ApplicationMessage, NoUserEvent> for TopMenu {
                     Some(ApplicationMessage::FocusBottomMenu)
                 }
             }
-            CmdResult::Changed(State::None) => Some(ApplicationMessage::Tick),
+            CmdResult::Changed(State::None) => Some(ApplicationMessage::None),
             _ => None,
         }
     }
@@ -335,7 +335,7 @@ impl MenuState {
             item.selected = false;
         }
     }
-    
+
     /// Creates a pre-made MenuState instance with submenus and its items filled.
     fn new_premade() -> Self {
         MenuState::new(vec![
