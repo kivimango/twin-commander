@@ -1,8 +1,10 @@
 use tui::layout::{Constraint, Direction, Layout, Rect};
+use tuirealm::State;
 
 mod bottom_menu;
 //mod dialog;
 mod menu;
+mod panel_state;
 mod table;
 //mod user_interface;
 //mod widgets;
@@ -10,10 +12,20 @@ mod table;
 pub use self::bottom_menu::*;
 //pub use self::dialog::*;
 pub use self::menu::*;
+pub use self::panel_state::*;
 pub use self::table::*;
 //pub use self::user_interface::UserInterface;
 //pub use self::widgets::*;
 pub use self::TopMenuMessage::*;
+
+#[derive(Debug, PartialEq)]
+pub enum PanelMessage {
+    ChangeSortDirection(TableSortDirection),
+    ChangeDirectory(State),
+    ChangeSortPredicate(TableSortPredicate),
+    GoBackUp,
+    SwitchPanel,
+}
 
 /// A list of available widgets to use in a `Panel`.
 #[allow(unused)]
