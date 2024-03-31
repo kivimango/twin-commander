@@ -92,7 +92,7 @@ impl MockComponent for BottomMenu {
             .get_or(Attribute::Color, AttrValue::Color(Color::White))
             .unwrap_color();
 
-        let menu_bottom_items = self
+        let menu_bottom_items: Vec<Line> = self
             .labels
             .iter()
             .map(|item| {
