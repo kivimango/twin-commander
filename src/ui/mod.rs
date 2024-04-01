@@ -1,8 +1,11 @@
-use tui::layout::{Constraint, Direction, Layout, Rect};
+use tuirealm::tui::layout::Constraint;
+use tuirealm::tui::layout::Direction;
+use tuirealm::tui::layout::Layout;
+use tuirealm::tui::layout::Rect;
 use tuirealm::State;
 
 mod bottom_menu;
-//mod dialog;
+mod dialog;
 mod menu;
 mod panel_state;
 mod table;
@@ -10,7 +13,7 @@ mod table;
 //mod widgets;
 
 pub use self::bottom_menu::*;
-//pub use self::dialog::*;
+pub use self::dialog::*;
 pub use self::menu::*;
 pub use self::panel_state::*;
 pub use self::table::*;
@@ -68,7 +71,7 @@ pub fn fixed_height_centered_rect(percent_x: u16, height: u16, r: Rect) -> Rect 
 #[cfg(test)]
 mod test {
     use super::fixed_height_centered_rect;
-    use tui::layout::Rect;
+    use tuirealm::tui::layout::Rect;
 
     #[test]
     fn test_fixed_height_centered_rect() {
