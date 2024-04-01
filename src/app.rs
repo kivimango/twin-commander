@@ -1,6 +1,6 @@
 use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
 use crate::core::list_dir::{DirContent, FilterOptions};
-use crate::ui::PanelState;
+use crate::ui::{fixed_height_centered_rect, DialogMessage, HelpDialog, PanelState};
 use crate::ui::{
     BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TableView, TopMenu,
     TopMenuMessage,
@@ -15,6 +15,7 @@ use tuirealm::props::{
 };
 use tuirealm::terminal::TerminalBridge;
 use tuirealm::tui::layout::{Constraint, Direction, Layout};
+use tuirealm::tui::widgets::Clear;
 use tuirealm::{
     Application, AttrValue, Attribute, EventListenerCfg, NoUserEvent, PollStrategy, State,
     StateValue, Sub, SubClause, SubEventClause, Update,
@@ -29,6 +30,7 @@ const RIGHT_PANEL_IDX: usize = 1;
 /// Variants are uniqe identifiers of those components used by tuirealm.
 #[derive(Debug, Eq, PartialEq, Clone, Hash)]
 pub enum UserInterfaces {
+    Dialog,
     Topmenu,
     LeftPanel,
     RightPanel,
@@ -40,6 +42,8 @@ pub enum UserInterfaces {
 pub enum ApplicationMessage {
     /// Requests closing the application
     Close,
+
+    Dialog(DialogMessage),
 
     /// Brings up the top menu by stealing the focus from the currently focused component
     FocusBottomMenu,
@@ -261,6 +265,13 @@ impl ApplicationModel {
 
             // Draw menu at last to able to show expanded menus over content
             self.app.view(&UserInterfaces::Topmenu, frame, layout[0]);
+
+            // Render popup at last over content
+            if self.app.mounted(&UserInterfaces::Dialog) {
+                let popup_area = fixed_height_centered_rect(50, 14, frame_size);
+                frame.render_widget(Clear, popup_area);
+                self.app.view(&UserInterfaces::Dialog, frame, popup_area);
+            }
         }) {
             eprint!("Error during drawing frame: {error}");
         }
@@ -377,6 +388,22 @@ impl Update<ApplicationMessage> for ApplicationModel {
                     self.should_quit = true;
                     None
                 }
+                ApplicationMessage::Dialog(dialog_message) => match dialog_message {
+                    DialogMessage::ShowHelpDialog => {
+                        let help_dialog = Box::new(HelpDialog::new());
+                        self.app
+                            .mount(UserInterfaces::Dialog, help_dialog, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::CloseDialog => {
+                        if self.app.mounted(&UserInterfaces::Dialog) {
+                            self.app.umount(&UserInterfaces::Dialog).unwrap();
+                        }
+                        Some(ApplicationMessage::None)
+                    }
+                },
                 ApplicationMessage::FocusBottomMenu => {
                     self.app.active(&UserInterfaces::BottomMenu).unwrap();
                     Some(ApplicationMessage::None)
