@@ -1,8 +1,6 @@
-use super::TopMenuMessage;
 use crate::app::ApplicationMessage;
 use tuirealm::{
     command::{Cmd, CmdResult},
-    event::{Key, KeyEvent, KeyModifiers},
     props::{Color, Style},
     tui::{
         layout::Rect,
@@ -105,6 +103,7 @@ impl MockComponent for BottomMenu {
             .collect();
 
         let bottom_menu = Tabs::new(menu_bottom_items)
+            .highlight_style(Style::default())
             .style(Style::default().bg(bacground))
             .divider(Span::raw(" "));
 
@@ -113,17 +112,7 @@ impl MockComponent for BottomMenu {
 }
 
 impl Component<ApplicationMessage, NoUserEvent> for BottomMenu {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
-        match event {
-            Event::Keyboard(KeyEvent {
-                code: Key::Function(9),
-                modifiers: KeyModifiers::NONE,
-            }) => Some(ApplicationMessage::TopMenu(TopMenuMessage::Focus)),
-            Event::Keyboard(KeyEvent {
-                code: Key::Function(10),
-                modifiers: KeyModifiers::NONE,
-            }) => Some(ApplicationMessage::Close),
-            _ => None,
-        }
+    fn on(&mut self, _event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        None
     }
 }

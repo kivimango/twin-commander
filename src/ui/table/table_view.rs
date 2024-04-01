@@ -1,5 +1,8 @@
 use super::{TableSortDirection, TableSortPredicate};
-use crate::{app::ApplicationMessage, ui::PanelMessage};
+use crate::{
+    app::ApplicationMessage,
+    ui::{DialogMessage, PanelMessage, TopMenuMessage},
+};
 use tui_realm_stdlib::Table;
 use tuirealm::{
     command::{Cmd, Direction},
@@ -41,6 +44,19 @@ impl TableView {
 impl Component<ApplicationMessage, NoUserEvent> for TableView {
     fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
         let command = match event {
+            // Bottom menu
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(2),
+                modifiers: KeyModifiers::NONE,
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowHelpDialog)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(9),
+                modifiers: KeyModifiers::NONE,
+            }) => return Some(ApplicationMessage::TopMenu(TopMenuMessage::Focus)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(10),
+                modifiers: KeyModifiers::NONE,
+            }) => return Some(ApplicationMessage::Close),
             // Navigation
             Event::Keyboard(KeyEvent {
                 code: Key::Up,
@@ -107,10 +123,6 @@ impl Component<ApplicationMessage, NoUserEvent> for TableView {
                     PanelMessage::ChangeSortDirection(TableSortDirection::Descending),
                 ))
             }
-            Event::Keyboard(KeyEvent {
-                code: Key::Function(10),
-                modifiers: KeyModifiers::NONE,
-            }) => return Some(ApplicationMessage::Close),
             _ => Cmd::None,
         };
 
