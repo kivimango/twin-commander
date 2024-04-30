@@ -3,11 +3,13 @@ use fs_extra::{
 };
 use std::path::Path;
 use std::sync::mpsc::Sender;
+use tuirealm::tui::layout::Rect;
+use tuirealm::State;
 
 //mod cp;
 mod help;
 //mod menu;
-//mod mkdir;
+mod mkdir;
 //mod mv;
 //mod rm;
 //mod transfer;
@@ -15,7 +17,7 @@ mod help;
 //pub use self::cp::*;
 pub use self::help::*;
 //pub use self::menu::*;
-//pub use self::mkdir::*;
+pub use self::mkdir::*;
 //pub use self::mv::*;
 //pub use self::rm::*;
 //pub use self::transfer::*;
@@ -23,7 +25,13 @@ pub use self::help::*;
 #[derive(Debug, PartialEq)]
 pub enum DialogMessage {
     CloseDialog,
+    CreateDirectory(State),
     ShowHelpDialog,
+    ShowMkDirDialog,
+}
+
+pub struct Dialog {
+    pub area: Rect,
 }
 
 /// Abstraction of file transfers (copy/move) for reusing
