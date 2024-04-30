@@ -1,6 +1,8 @@
 use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
 use crate::core::list_dir::{DirContent, FilterOptions};
-use crate::ui::{fixed_height_centered_rect, DialogMessage, HelpDialog, PanelState};
+use crate::ui::{
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelState,
+};
 use crate::ui::{
     BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TableView, TopMenu,
     TopMenuMessage,
@@ -14,7 +16,7 @@ use tuirealm::props::{
     Alignment, Color, PropPayload, PropValue, Style, Table, TableBuilder, TextSpan,
 };
 use tuirealm::terminal::TerminalBridge;
-use tuirealm::tui::layout::{Constraint, Direction, Layout};
+use tuirealm::tui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::tui::widgets::Clear;
 use tuirealm::{
     Application, AttrValue, Attribute, EventListenerCfg, NoUserEvent, PollStrategy, State,
@@ -60,6 +62,9 @@ pub enum ApplicationMessage {
 
 pub struct ApplicationModel {
     app: TuiRealmApplication,
+    active_panel: usize,
+    area: Rect,
+    dialog: Option<Dialog>,
     should_quit: bool,
     redraw: bool,
     panel_states: [PanelState; 2],
@@ -69,6 +74,9 @@ impl ApplicationModel {
     pub fn new() -> Self {
         ApplicationModel {
             app: initialize(),
+            active_panel: LEFT_PANEL_IDX,
+            area: Rect::default(),
+            dialog: None,
             should_quit: false,
             redraw: true,
             panel_states: [PanelState::new(), PanelState::new()],
@@ -213,6 +221,7 @@ impl ApplicationModel {
     /// Subsequently, the configuration data is loaded from the configuration file.
     pub fn run(&mut self, terminal: &mut TerminalBridge) {
         let mut config = get_config();
+        self.area = terminal.raw_mut().get_frame().size();
         self.mount_views();
         self.init_panels(&config);
 
@@ -263,14 +272,16 @@ impl ApplicationModel {
                 .view(&UserInterfaces::RightPanel, frame, table_layout[1]);
             self.app.view(&UserInterfaces::BottomMenu, frame, layout[2]);
 
-            // Draw menu at last to able to show expanded menus over content
+            // Draw menu after the panels to able to show expanded menus over content
             self.app.view(&UserInterfaces::Topmenu, frame, layout[0]);
 
-            // Render popup at last over content
+            // Render popup at last over everything
             if self.app.mounted(&UserInterfaces::Dialog) {
-                let popup_area = fixed_height_centered_rect(50, 14, frame_size);
-                frame.render_widget(Clear, popup_area);
-                self.app.view(&UserInterfaces::Dialog, frame, popup_area);
+                if let Some(dialog) = &self.dialog {
+                    let popup_area = dialog.area;
+                    frame.render_widget(Clear, popup_area);
+                    self.app.view(&UserInterfaces::Dialog, frame, popup_area);
+                }
             }
         }) {
             eprint!("Error during drawing frame: {error}");
@@ -391,14 +402,55 @@ impl Update<ApplicationMessage> for ApplicationModel {
                 ApplicationMessage::Dialog(dialog_message) => match dialog_message {
                     DialogMessage::ShowHelpDialog => {
                         let help_dialog = Box::new(HelpDialog::new());
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 14, self.area),
+                        });
                         self.app
                             .mount(UserInterfaces::Dialog, help_dialog, vec![])
                             .unwrap();
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
+                    DialogMessage::ShowMkDirDialog => {
+                        let mkdir_dialog = Box::new(MkDirDialog::new());
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 7, self.area),
+                        });
+                        self.app
+                            .mount(UserInterfaces::Dialog, mkdir_dialog, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::CreateDirectory(state) => {
+                        let mut current_dir =
+                            PathBuf::from(self.panel_states[self.active_panel].pwd());
+                        let new_dir_name = state.unwrap_one().unwrap_string();
+                        current_dir.push(new_dir_name);
+                        let path = current_dir.to_owned();
+
+                        match std::fs::create_dir(&path) {
+                            Ok(_) => {
+                                println!("ok");
+                                return Some(ApplicationMessage::Dialog(
+                                    DialogMessage::CloseDialog,
+                                ));
+                            }
+                            Err(error) => {
+                                // TODO: display error message
+                                eprintln!(
+                                    "error creating new directory at {} : {} ",
+                                    path.display(),
+                                    error
+                                );
+                            }
+                        }
+
+                        Some(ApplicationMessage::None)
+                    }
                     DialogMessage::CloseDialog => {
                         if self.app.mounted(&UserInterfaces::Dialog) {
+                            self.dialog = None;
                             self.app.umount(&UserInterfaces::Dialog).unwrap();
                         }
                         Some(ApplicationMessage::None)
@@ -418,7 +470,6 @@ impl Update<ApplicationMessage> for ApplicationModel {
                                 self.set_panel_headers(&component_id, headers).unwrap();
                             }
                         }
-
                         Some(ApplicationMessage::None)
                     }
                     PanelMessage::ChangeSortPredicate(predicate) => {
@@ -503,6 +554,11 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     PanelMessage::SwitchPanel => {
+                        match self.active_panel {
+                            LEFT_PANEL_IDX => self.active_panel = RIGHT_PANEL_IDX,
+                            RIGHT_PANEL_IDX => self.active_panel = LEFT_PANEL_IDX,
+                            _ => {}
+                        }
                         if let Some(focused_component) = self.app.focus() {
                             match focused_component {
                                 UserInterfaces::LeftPanel => {
