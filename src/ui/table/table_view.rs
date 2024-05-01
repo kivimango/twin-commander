@@ -54,6 +54,10 @@ impl Component<ApplicationMessage, NoUserEvent> for TableView {
                 modifiers: KeyModifiers::NONE,
             }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowMkDirDialog)),
             Event::Keyboard(KeyEvent {
+                code: Key::Function(8),
+                modifiers: KeyModifiers::NONE,
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowRmDialog)),
+            Event::Keyboard(KeyEvent {
                 code: Key::Function(9),
                 modifiers: KeyModifiers::NONE,
             }) => return Some(ApplicationMessage::TopMenu(TopMenuMessage::Focus)),
