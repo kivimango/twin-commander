@@ -11,7 +11,7 @@ mod help;
 //mod menu;
 mod mkdir;
 //mod mv;
-//mod rm;
+mod rm;
 //mod transfer;
 
 //pub use self::cp::*;
@@ -19,7 +19,7 @@ pub use self::help::*;
 //pub use self::menu::*;
 pub use self::mkdir::*;
 //pub use self::mv::*;
-//pub use self::rm::*;
+pub use self::rm::*;
 //pub use self::transfer::*;
 
 #[derive(Debug, PartialEq)]
@@ -28,6 +28,8 @@ pub enum DialogMessage {
     CreateDirectory(State),
     ShowHelpDialog,
     ShowMkDirDialog,
+    ShowRmDialog,
+    RemoveSelectedFiles,
 }
 
 pub struct Dialog {
