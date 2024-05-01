@@ -1,7 +1,8 @@
 use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelState,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState,
+    RemoveConfirmationDialog,
 };
 use crate::ui::{
     BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TableView, TopMenu,
@@ -412,7 +413,8 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowMkDirDialog => {
-                        let mkdir_dialog = Box::new(MkDirDialog::new());
+                        let dialog = RemoveConfirmationDialog::default();
+                        let mkdir_dialog = Box::new(dialog);
                         self.dialog = Some(Dialog {
                             area: fixed_height_centered_rect(50, 7, self.area),
                         });
@@ -422,6 +424,18 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
+                    DialogMessage::ShowRmDialog => {
+                        let rm_dialog = Box::new(RemoveConfirmationDialog::new());
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 5, self.area),
+                        });
+                        self.app
+                            .mount(UserInterfaces::Dialog, rm_dialog, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
                         let mut current_dir =
                             PathBuf::from(self.panel_states[self.active_panel].pwd());
@@ -632,6 +646,25 @@ fn active_panel_idx(panel: &UserInterfaces) -> Option<usize> {
     }
 }
 
+fn _get_confirm_msg(files: &[&Path]) -> String {
+    let count = files.len();
+    if count == 1 {
+        if let Some(file) = files.get(0) {
+            if file.is_dir() {
+                String::from("Are you sure you want to delete this folder and all of its content ?")
+            } else {
+                String::from("Are you sure you want to delete this file ?")
+            }
+        } else {
+            String::from("Are you sure you want to delete this ?")
+        }
+    } else {
+        format!("Are you sure you want to delete {} items ?", count)
+    }
+}
+
+/// Decides the confirmation message to be displayed to the user based on the type
+/// and the count of files marked to delete.
 fn get_config() -> Configuration {
     let default_config = Configuration::default();
 
