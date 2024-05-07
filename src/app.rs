@@ -2,11 +2,10 @@ use crate::core::config::{self, try_load_from_file, try_save_to_file, Configurat
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState,
-    RemoveConfirmationDialog,
+    RemoveConfirmationDialog, TablePanel,
 };
 use crate::ui::{
-    BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TableView, TopMenu,
-    TopMenuMessage,
+    BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TopMenu, TopMenuMessage,
 };
 use humansize::{SizeFormatter, DECIMAL};
 use std::path::{Path, PathBuf};
@@ -167,8 +166,8 @@ impl ApplicationModel {
             .label_foreground(Color::Black)
             .function_key_background(Color::Black)
             .function_key_foreground(Color::White);
-        let left_table = TableView::new();
-        let right_table = TableView::new();
+        let left_table = TablePanel::default();
+        let right_table = TablePanel::default();
 
         self.app
             .mount(
