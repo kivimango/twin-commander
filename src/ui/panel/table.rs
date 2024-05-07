@@ -1,0 +1,383 @@
+use crate::{
+    app::ApplicationMessage,
+    ui::{DialogMessage, PanelMessage, TableSortDirection, TableSortPredicate, TopMenuMessage},
+};
+use tuirealm::tui::style::Style;
+use tuirealm::{
+    command::{Cmd, CmdResult, Direction, Position},
+    event::{Key, KeyEvent},
+    props::{Alignment, BorderSides, Borders, Color, PropValue},
+    tui::{
+        layout::{Constraint, Rect},
+        style::Stylize,
+        widgets::{Block, Cell, Row, Table, TableState},
+    },
+    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, Props, State, StateValue,
+};
+
+const DEFAULT_BACKGROUND_COLOR: Color = Color::LightBlue;
+const DEFAULT_TEXT_COLOR: Color = Color::White;
+const DEFAULT_FOCUS_STYLE: Style = Style {
+    add_modifier: tuirealm::tui::prelude::Modifier::empty(),
+    bg: Some(Color::Cyan),
+    fg: Some(Color::Black),
+    sub_modifier: tuirealm::tui::prelude::Modifier::empty(),
+};
+
+/// Represents a panel used to display the contents of a directory (files) in a table format.
+/// It keeps track of the count of items in the table, along with its properties and state between draw calls.
+pub struct TablePanel {
+    /// The count of files in the directory.
+    count: usize,
+
+    /// Additional properties and settings for the table panel.
+    properties: Props,
+
+    /// The state keeps track of the selected item and an offset from 0.
+    state: TableState,
+}
+
+impl Default for TablePanel {
+    fn default() -> Self {
+        let mut properties = Props::default();
+        let border = Borders::default()
+            .color(Color::White)
+            .sides(BorderSides::ALL);
+        properties.set(Attribute::Borders, AttrValue::Borders(border));
+        properties.set(Attribute::Background, AttrValue::Color(Color::Blue));
+        properties.set(Attribute::Foreground, AttrValue::Color(Color::White));
+        properties.set(
+            Attribute::Title,
+            AttrValue::Title((String::new(), Alignment::Left)),
+        );
+        properties.set(
+            Attribute::FocusStyle,
+            AttrValue::Style(Style::default().bg(Color::Cyan).fg(Color::Black)),
+        );
+
+        let state = TableState::default().with_selected(Some(0));
+
+        TablePanel {
+            count: 0,
+            properties,
+            state,
+        }
+    }
+}
+
+impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
+    /// Key event handler: turns key presses into commands
+    /// that the widget will process further.
+    ///
+    /// Key to Command Mappings:
+    ///
+    /// - `Function 2 Key`: Show help dialog
+    /// - `Function 7 Key`: Show make directory dialog
+    /// - `Function 8 Key`: Show remove dialog
+    /// - `Function 9 Key`: Focus top menu
+    /// - `Function 10 Key`: Close application
+    /// - `Up Arrow Key`: Move up
+    /// - `Down Arrow Key`: Move down
+    /// - `Home Key`: Go to beginning of the list
+    /// - `End Key`: Go to end of the list
+    /// - `Enter Key`: Changes the current working directory into the selectem file (if it is a dir)
+    /// - `Backspace Key`: Goes back to the parent directoy of the current working directory
+    /// - `Tab Key`: Switches the current active panel to another
+    /// - `Ctrl+n Key`: Changes sort predicate to name
+    /// - `Ctrl+l Key`: Changes sort predicate to last modified
+    /// - `Ctrl+s Key`: Changes sort predicate to size
+    /// - `Ctrl+u Key`: Changes sort direction to ascending
+    /// - `Ctrl+d Key`: Changes sort direction to descending
+    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        let cmd = match event {
+            // Bottom menu
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(2),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowHelpDialog)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(7),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowMkDirDialog)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(8),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowRmDialog)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(9),
+                ..
+            }) => return Some(ApplicationMessage::TopMenu(TopMenuMessage::Focus)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(10),
+                ..
+            }) => return Some(ApplicationMessage::Close),
+            // Navigation
+            Event::Keyboard(KeyEvent { code: Key::Up, .. }) => Cmd::Move(Direction::Up),
+            Event::Keyboard(KeyEvent {
+                code: Key::Down, ..
+            }) => Cmd::Move(Direction::Down),
+            Event::Keyboard(KeyEvent {
+                code: Key::Home, ..
+            }) => Cmd::GoTo(Position::Begin),
+            Event::Keyboard(KeyEvent { code: Key::End, .. }) => Cmd::GoTo(Position::End),
+            Event::Keyboard(KeyEvent {
+                code: Key::Enter, ..
+            }) => {
+                return Some(ApplicationMessage::Panel(PanelMessage::ChangeDirectory(
+                    self.state(),
+                )))
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Backspace,
+                ..
+            }) => return Some(ApplicationMessage::Panel(PanelMessage::GoBackUp)),
+            Event::Keyboard(KeyEvent { code: Key::Tab, .. }) => {
+                return Some(ApplicationMessage::Panel(PanelMessage::SwitchPanel))
+            }
+            // Sorting
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('n'),
+                ..
+            }) => {
+                return Some(ApplicationMessage::Panel(
+                    PanelMessage::ChangeSortPredicate(TableSortPredicate::Name),
+                ))
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('l'),
+                ..
+            }) => {
+                return Some(ApplicationMessage::Panel(
+                    PanelMessage::ChangeSortPredicate(TableSortPredicate::LastModified),
+                ))
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('s'),
+                ..
+            }) => {
+                return Some(ApplicationMessage::Panel(
+                    PanelMessage::ChangeSortPredicate(TableSortPredicate::Size),
+                ))
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('u'),
+                ..
+            }) => {
+                return Some(ApplicationMessage::Panel(
+                    PanelMessage::ChangeSortDirection(TableSortDirection::Ascending),
+                ))
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Char('d'),
+                ..
+            }) => {
+                return Some(ApplicationMessage::Panel(
+                    PanelMessage::ChangeSortDirection(TableSortDirection::Descending),
+                ))
+            }
+            _ => Cmd::None,
+        };
+
+        self.perform(cmd);
+        Some(ApplicationMessage::None)
+    }
+}
+
+impl MockComponent for TablePanel {
+    /// Sets  the table's properties based on the provided attribute and value.
+    ///
+    /// # Arguments
+    ///
+    /// * `attr` - The attribute to set.
+    /// * `value` - The value corresponding to the attribute.
+    ///
+    /// # Accepted Properties and Values:
+    ///
+    /// - `Attribute::Content`: Sets the content of the widget, updating the row count if applicable.
+    ///   - Value: `AttrValue::Table(Table)`, where `Table` represents the content data
+    ///     in a two-dimensional array
+    ///
+    /// - `Attribute::Value`: Sets the value of the widget, typically used for selecting items.
+    ///   - Value: `AttrValue::Payload(Payload)`, where `Payload` represents the data payload.
+    ///     The payload should contain one item, which is the index of the selected item.
+    ///
+    /// - `Attribute::Background`: Sets the background color of the widget
+    ///   - Value: `AttrValue::Color(Color)`, the color of the background
+    ///
+    /// - `Attribute::Foreground`: Sets the text color of the items in the rows of the widget
+    ///   - Value: `AttrValue::Color(Color)`, the color of the item's text
+    ///
+    /// - `Attribute::Borders`: Sets the border around the widget
+    ///   - Value: `AttrValue::Borders(Borders)`, the border width, color, sides and its modifiers around the widget
+    ///
+    /// - `Attribute::Title`: Sets the title of the table
+    ///   - Value: `AttrValue::Title((String, Alingment))`, the current workind directory's path and its alignment
+    ///
+    /// - `Attribute::Text`: Sets the column headers of the table
+    ///   - Value: `AttrValue::Text(Payload::Vec)`, the array of the column headers
+    ///
+    /// - `Attribute::FocusStyle`: Sets the selected item's style
+    ///   - Value: `AttrValue::Style(Style)`, the style of the selected item.If the table is not focused, it will be set to the background and text color.
+    fn attr(&mut self, attr: Attribute, value: AttrValue) {
+        if matches!(attr, Attribute::Content) {
+            // unwrapping the table attribute to query the row count in order to update it
+            let table = value.unwrap_table();
+            let row_count = table.len();
+            self.count = row_count;
+            self.properties.set(attr, AttrValue::Table(table));
+        } else if matches!(attr, Attribute::Value) {
+            let selected_idx = value.clone().unwrap_payload().unwrap_one().unwrap_usize();
+            self.state.select(Some(selected_idx));
+            self.properties.set(attr, value);
+        } else {
+            self.properties.set(attr, value)
+        }
+    }
+
+    fn perform(&mut self, cmd: Cmd) -> CmdResult {
+        match cmd {
+            Cmd::Move(Direction::Down) => {
+                if let Some(selected_idx) = self.state.selected() {
+                    // TODO: could panic if self.count == 0
+                    if selected_idx == self.count - 1 || self.count == 0 {
+                        return CmdResult::None;
+                    }
+                    // TODO: could panic if selected_idx == Usize:MAX
+                    self.state.select(Some(selected_idx + 1));
+                    return CmdResult::Changed(self.state());
+                }
+                CmdResult::None
+            }
+            Cmd::Move(Direction::Up) => {
+                if let Some(selected_idx) = self.state.selected() {
+                    if selected_idx == 0 || self.count == 0 {
+                        return CmdResult::None;
+                    }
+                    // TODO: could panic if selected_idx == 0
+                    self.state.select(Some(selected_idx - 1));
+                    return CmdResult::Changed(self.state());
+                }
+                CmdResult::None
+            }
+            Cmd::GoTo(Position::Begin) => {
+                if self.count != 0 {
+                    self.state.select(Some(0));
+                    return CmdResult::Changed(self.state());
+                }
+                CmdResult::None
+            }
+            Cmd::GoTo(Position::End) => {
+                if self.count != 0 {
+                    self.state.select(Some(self.count - 1));
+                    return CmdResult::Changed(self.state());
+                }
+                CmdResult::None
+            }
+            _ => CmdResult::None,
+        }
+    }
+
+    fn query(&self, attr: Attribute) -> Option<AttrValue> {
+        self.properties.get(attr)
+    }
+
+    fn state(&self) -> State {
+        if let Some(selected_idx) = self.state.selected() {
+            State::One(StateValue::Usize(selected_idx))
+        } else {
+            State::None
+        }
+    }
+
+    fn view(&mut self, frame: &mut tuirealm::Frame, area: Rect) {
+        let background = self
+            .properties
+            .get_or(
+                Attribute::Background,
+                AttrValue::Color(DEFAULT_BACKGROUND_COLOR),
+            )
+            .unwrap_color();
+        let text_color = self
+            .properties
+            .get_or(Attribute::Foreground, AttrValue::Color(DEFAULT_TEXT_COLOR))
+            .unwrap_color();
+        let border = self
+            .properties
+            .get_or(Attribute::Borders, AttrValue::Borders(Borders::default()))
+            .unwrap_borders();
+        let title = self
+            .properties
+            .get_or(
+                Attribute::Title,
+                AttrValue::Title((String::new(), Alignment::Left)),
+            )
+            .unwrap_title();
+        let headers = self
+            .properties
+            .get(Attribute::Text)
+            .unwrap()
+            .unwrap_payload()
+            .unwrap_vec();
+
+        // TODO: probably would be more efficient to store the file list as a Payload with referencing instead of cloning a table which is a 2D String vector
+        //let files = self.properties.get_or(Attribute::Content, AttrValue::Payload(PropPayload::Vec(Vec::new()))).unwrap_payload().unwrap_vec();
+        let files = self
+            .properties
+            .get(Attribute::Content)
+            .unwrap()
+            .unwrap_table();
+        let focused = self
+            .properties
+            .get_or(Attribute::Focus, AttrValue::Flag(false))
+            .unwrap_flag();
+
+        let focused_style = if focused {
+            self.properties
+                .get_or(Attribute::FocusStyle, AttrValue::Style(DEFAULT_FOCUS_STYLE))
+                .unwrap_style()
+        } else {
+            Style::default().bg(background).fg(text_color)
+        };
+
+        let header_titles: Vec<Cell> = headers
+            .iter()
+            .map(|value| match value {
+                PropValue::Str(header_str) => Cell::new(header_str.as_str()).yellow(),
+                _ => Cell::new(""),
+            })
+            .collect();
+        let headers = Row::new(header_titles);
+
+        let rows: Vec<Row> = files
+            .iter()
+            .map(|f| {
+                Row::new([
+                    Cell::from(f[0].content.clone()).fg(text_color),
+                    Cell::from(f[1].content.clone()).fg(text_color),
+                    Cell::from(f[2].content.clone()).fg(text_color),
+                ])
+            })
+            .collect();
+
+        let table = Table::default()
+            .block(
+                Block::default()
+                    .borders(border.sides)
+                    .title(title.0)
+                    .title_alignment(title.1)
+                    .style(Style::default().fg(border.color)),
+            )
+            .bg(background)
+            .fg(text_color)
+            .header(headers)
+            .highlight_style(focused_style)
+            .rows(rows)
+            .widths([
+                Constraint::Fill(1),
+                Constraint::Length(8),
+                Constraint::Length(17),
+            ]);
+
+        frame.render_stateful_widget(table, area, &mut self.state);
+    }
+}
