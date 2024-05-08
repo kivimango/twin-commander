@@ -589,7 +589,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                 ApplicationMessage::TopMenu(top_menu_msg) => {
                     match top_menu_msg {
                         TopMenuMessage::Blur => {
-                            self.app.active(&UserInterfaces::LeftPanel).unwrap();
+                            self.app.blur().unwrap()
                         }
                         TopMenuMessage::Focus => {
                             if let Some(focused_component) = self.app.focus() {

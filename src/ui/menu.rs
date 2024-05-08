@@ -130,7 +130,7 @@ impl Component<ApplicationMessage, NoUserEvent> for TopMenu {
                 if status {
                     Some(ApplicationMessage::TopMenu(TopMenuMessage::Focus))
                 } else {
-                    Some(ApplicationMessage::FocusBottomMenu)
+                    Some(ApplicationMessage::TopMenu(TopMenuMessage::Blur))
                 }
             }
             CmdResult::Changed(State::None) => Some(ApplicationMessage::None),
