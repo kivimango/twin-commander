@@ -8,7 +8,7 @@ use tuirealm::State;
 
 //mod cp;
 mod help;
-//mod menu;
+mod menu;
 mod mkdir;
 //mod mv;
 mod rm;
@@ -16,19 +16,22 @@ mod rm;
 
 //pub use self::cp::*;
 pub use self::help::*;
-//pub use self::menu::*;
+pub use self::menu::*;
 pub use self::mkdir::*;
 //pub use self::mv::*;
 pub use self::rm::*;
 //pub use self::transfer::*;
 
-#[derive(Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq)]
 pub enum DialogMessage {
     CloseDialog,
     CreateDirectory(State),
     ShowHelpDialog,
     ShowMkDirDialog,
     ShowRmDialog,
+    ShowFilterDialog,
+    ShowPanelOptionsDialog,
+    ShowSortDialog,
     RemoveSelectedFiles,
 }
 
