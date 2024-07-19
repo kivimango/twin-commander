@@ -13,6 +13,7 @@ use tuirealm::{
     AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
     StateValue,
 };
+use super::DialogMessage;
 
 /// List of available messages that the top menu can produce to be handled by the model
 #[derive(Debug, PartialEq)]
@@ -122,6 +123,10 @@ impl Component<ApplicationMessage, NoUserEvent> for TopMenu {
                 modifiers: KeyModifiers::NONE,
                 code: Key::Down,
             }) => Cmd::Move(Direction::Down),
+            Event::Keyboard(KeyEvent {
+                modifiers: KeyModifiers::NONE,
+                code: Key::Enter,
+            }) => Cmd::Change,
             _ => Cmd::None,
         };
 
@@ -132,6 +137,11 @@ impl Component<ApplicationMessage, NoUserEvent> for TopMenu {
                 } else {
                     Some(ApplicationMessage::TopMenu(TopMenuMessage::Blur))
                 }
+            }
+            CmdResult::Submit(_) => {
+                let sub_menu = self.component.state.selected();
+                let target = sub_menu.items[sub_menu.highlighted_item_idx].target.clone();
+                Some(ApplicationMessage::Dialog(target))
             }
             CmdResult::Changed(State::None) => Some(ApplicationMessage::None),
             _ => None,
@@ -185,6 +195,9 @@ impl MockComponent for MenuComponent {
                     Direction::Down => self.state.down(),
                 }
                 CmdResult::Changed(State::None)
+            }
+            Cmd::Change => {
+                CmdResult::Submit(State::None)
             }
             Cmd::None => CmdResult::None,
             _ => CmdResult::None,
@@ -266,6 +279,10 @@ impl MenuState {
         self.deselect_current()
     }
 
+    fn selected(&self) -> &SubMenu {
+        &self.items[self.selected_item_idx]
+    }
+
     /// Selects the previous menu item (from right to left).
     /// Calling this method wont has no effect when the currently selected menu item is the first.
     fn select_previous(&mut self) {
@@ -345,10 +362,12 @@ impl MenuState {
                     MenuItem {
                         title: "Sort order".into(),
                         highlighted: false,
+                        target: DialogMessage::ShowSortDialog,
                     },
                     MenuItem {
                         title: "Filter".into(),
                         highlighted: false,
+                        target: DialogMessage::ShowFilterDialog,
                     },
                 ],
             ),
@@ -357,6 +376,7 @@ impl MenuState {
                 vec![MenuItem {
                     title: "Panel options".into(),
                     highlighted: false,
+                    target: DialogMessage::ShowPanelOptionsDialog
                 }],
             ),
             SubMenu::new(
@@ -365,10 +385,12 @@ impl MenuState {
                     MenuItem {
                         title: "Sort order".into(),
                         highlighted: false,
+                        target: DialogMessage::ShowSortDialog
                     },
                     MenuItem {
                         title: "Filter".into(),
                         highlighted: false,
+                        target: DialogMessage::ShowFilterDialog
                     },
                 ],
             ),
@@ -424,6 +446,7 @@ impl SubMenu {
 struct MenuItem {
     title: Cow<'static, str>,
     highlighted: bool,
+    target: DialogMessage
 }
 
 // An inbetween type for implementing a custom render method: in the view method,
