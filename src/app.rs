@@ -1,7 +1,8 @@
 use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState,
+    RemoveConfirmationDialog, SortingDialog, TablePanel,
 };
 use crate::ui::{
     BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TopMenu, TopMenuMessage,
@@ -434,20 +435,20 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowSortDialog => {
-                        let sort_dialog = Box::new(SortingDialog::new(TableSortPredicate::default(), TableSortDirection::default()));
+                        let predicate = self.panel_states[self.active_panel].sort_predicate();
+                        let direction = self.panel_states[self.active_panel].sort_direction();
+                        let sort_dialog = Box::new(SortingDialog::new(predicate, direction));
                         self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 8, self.area),
+                            area: fixed_height_centered_rect(50, 9, self.area),
                         });
-                        self.app.mount(UserInterfaces::Dialog, sort_dialog, vec![]).unwrap();
+                        self.app
+                            .mount(UserInterfaces::Dialog, sort_dialog, vec![])
+                            .unwrap();
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
-                    DialogMessage::ShowFilterDialog => {
-                        None
-                    }
-                    DialogMessage::ShowPanelOptionsDialog => {
-                        None
-                    }
+                    DialogMessage::ShowFilterDialog => None,
+                    DialogMessage::ShowPanelOptionsDialog => None,
                     DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
                         let mut current_dir =
@@ -602,9 +603,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                 },
                 ApplicationMessage::TopMenu(top_menu_msg) => {
                     match top_menu_msg {
-                        TopMenuMessage::Blur => {
-                            self.app.blur().unwrap()
-                        }
+                        TopMenuMessage::Blur => self.app.blur().unwrap(),
                         TopMenuMessage::Focus => {
                             if let Some(focused_component) = self.app.focus() {
                                 if !focused_component.eq(&UserInterfaces::Topmenu) {
