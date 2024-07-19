@@ -1,8 +1,7 @@
 use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState,
-    RemoveConfirmationDialog, TablePanel,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel
 };
 use crate::ui::{
     BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TopMenu, TopMenuMessage,
@@ -433,6 +432,21 @@ impl Update<ApplicationMessage> for ApplicationModel {
                             .unwrap();
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::ShowSortDialog => {
+                        let sort_dialog = Box::new(SortingDialog::new(TableSortPredicate::default(), TableSortDirection::default()));
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 8, self.area),
+                        });
+                        self.app.mount(UserInterfaces::Dialog, sort_dialog, vec![]).unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::ShowFilterDialog => {
+                        None
+                    }
+                    DialogMessage::ShowPanelOptionsDialog => {
+                        None
                     }
                     DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
