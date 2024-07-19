@@ -1,17 +1,18 @@
 use crate::{
-    core::config::Configuration,
-    ui::{user_interface::ActivePanel, BoxedDialog, TableSortDirection, TableSortPredicate},
+    app::ApplicationMessage,
+    ui::{DialogMessage, TableSortDirection, TableSortPredicate},
 };
-use std::{borrow::Cow, io::Stdout};
-use termion::event::Key;
-use termion::raw::RawTerminal;
-use tui::{
-    backend::TermionBackend,
-    layout::{Alignment, Constraint, Direction, Layout, Rect},
-    style::{Color, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
-    Frame,
+use std::borrow::Cow;
+use tuirealm::{
+    command::{Cmd, CmdResult},
+    event::Key,
+    props::{Alignment, BorderType, Color, Style},
+    tui::{
+        layout::{Constraint, Direction, Layout},
+        text::{Line, Span, Text},
+        widgets::{Block, List, ListItem, ListState, Paragraph},
+    },
+    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, State,
 };
 
 const CHECK_MARK: &str = "X";
@@ -145,47 +146,51 @@ impl DirectionList {
 /// * Esc: closes the dialog without applying the changes to the configuration
 pub struct SortingDialog {
     components: Components,
-    change_config: bool,
+    config_changed: bool,
     focused_button: Buttons,
     predicate_list: PredicateList,
     direction_list: DirectionList,
-    should_quit: bool,
 }
 
-impl SortingDialog {
-    /// Creates a new SortingDialog instance with the given configuration values.
-    /// The left column is selected by default.
-    pub fn new(predicate: TableSortPredicate, direction: TableSortDirection) -> Self {
-        let mut predicate_list = PredicateList::new(predicate);
-        let mut direction_list = DirectionList::new(direction);
-        let components = Components::PredicateColumn;
-        predicate_list.state.select(Some(predicate_list.selected));
-        predicate_list.check_mark();
-        direction_list.check_mark();
-
-        SortingDialog {
-            components,
-            change_config: false,
-            focused_button: Buttons::Cancel,
-            predicate_list,
-            direction_list,
-            should_quit: false,
+impl Component<ApplicationMessage, NoUserEvent> for SortingDialog {
+    fn on(&mut self, event: tuirealm::Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        match event {
+            Event::Keyboard(key_event) => match key_event.code {
+                Key::Esc | Key::Function(10) => {
+                    Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))
+                }
+                Key::Tab | Key::Left | Key::Right | Key::Up | Key::Down | Key::Enter => {
+                    self.handle_keys(key_event.code)
+                }
+                _ => None,
+            },
+            _ => None,
         }
     }
-
-    fn apply(&mut self) {
-        self.change_config = true;
-        self.should_quit = true;
-    }
 }
 
-impl BoxedDialog for SortingDialog {
-    fn render(&self, area: Rect, frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>) {
+impl MockComponent for SortingDialog {
+    fn attr(&mut self, _attr: Attribute, _value: AttrValue) {}
+
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
+        CmdResult::None
+    }
+
+    fn query(&self, _attr: Attribute) -> Option<AttrValue> {
+        None
+    }
+
+    fn state(&self) -> State {
+        State::None
+    }
+
+    fn view(&mut self, frame: &mut tuirealm::Frame, area: tuirealm::tui::prelude::Rect) {
         let dialog_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
             .margin(1)
             .split(area);
+
         let options_layout = Layout::default()
             .direction(Direction::Horizontal)
             .constraints(
@@ -205,6 +210,7 @@ impl BoxedDialog for SortingDialog {
                 Buttons::Cancel => ("[ ] OK ", "[X] Cancel"),
             }
         };
+
         let button_styles = {
             let focused_style = Style::default().bg(Color::Cyan).fg(Color::White);
             let button_style = Style::default().bg(Color::White);
@@ -218,7 +224,7 @@ impl BoxedDialog for SortingDialog {
                 },
             }
         };
-        let button_spans = Spans::from(vec![
+        let button_spans = Line::from(vec![
             Span::styled(button_titles.0, button_styles.0),
             Span::styled(button_titles.1, button_styles.1),
         ]);
@@ -244,7 +250,7 @@ impl BoxedDialog for SortingDialog {
             .highlight_style(Style::default().bg(Color::Cyan).fg(Color::White));
 
         let block = Block::default()
-            .borders(Borders::ALL)
+            .borders(tuirealm::tui::widgets::Borders::ALL)
             .border_style(Style::default().fg(Color::Black))
             .border_type(BorderType::Plain)
             .title("Sorting mode")
@@ -259,8 +265,29 @@ impl BoxedDialog for SortingDialog {
         frame.render_stateful_widget(right_list, options_layout[2], &mut right_list_state);
         frame.render_widget(buttons, dialog_layout[1]);
     }
+}
 
-    fn handle_keys(&mut self, key: Key, _app: &mut crate::app::Application) {
+impl SortingDialog {
+    /// Creates a new SortingDialog instance with the given configuration values.
+    /// The left column is selected by default.
+    pub fn new(predicate: TableSortPredicate, direction: TableSortDirection) -> Self {
+        let mut predicate_list = PredicateList::new(predicate);
+        let mut direction_list = DirectionList::new(direction);
+        let components = Components::PredicateColumn;
+        predicate_list.state.select(Some(predicate_list.selected));
+        predicate_list.check_mark();
+        direction_list.check_mark();
+
+        SortingDialog {
+            components,
+            config_changed: false,
+            focused_button: Buttons::Cancel,
+            predicate_list,
+            direction_list,
+        }
+    }
+
+    fn handle_keys(&mut self, key: Key) -> Option<ApplicationMessage> {
         match self.components {
             Components::PredicateColumn => match key {
                 Key::Right => {
@@ -278,7 +305,7 @@ impl BoxedDialog for SortingDialog {
                         self.predicate_list.select_next();
                     }
                 }
-                Key::Char('\n') => self.predicate_list.check_mark(),
+                Key::Enter => self.predicate_list.check_mark(),
                 _ => {}
             },
             Components::DirectionColumn => match key {
@@ -296,7 +323,7 @@ impl BoxedDialog for SortingDialog {
                         self.direction_list.select_next();
                     }
                 }
-                Key::Char('\n') => self.direction_list.check_mark(),
+                Key::Enter => self.direction_list.check_mark(),
                 _ => {}
             },
             Components::Buttons => match key {
@@ -309,45 +336,20 @@ impl BoxedDialog for SortingDialog {
                     self.direction_list.select();
                     self.components = Components::DirectionColumn;
                 }
-                Key::Char('\n') => match self.focused_button {
-                    Buttons::Apply => self.apply(),
+                Key::Enter => match self.focused_button {
+                    Buttons::Apply => {
+                        self.config_changed = true;
+                        return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog));
+                    }
                     Buttons::Cancel => {
-                        self.change_config = false;
-                        self.should_quit = true;
+                        self.config_changed = false;
+                        return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog));
                     }
                 },
                 _ => {}
             },
         }
-    }
-
-    fn should_quit(&self) -> bool {
-        self.should_quit
-    }
-
-    fn change_configuration(&mut self, config: &mut Configuration, active_panel: ActivePanel) {
-        match active_panel {
-            ActivePanel::Left => {
-                config
-                    .left_table_config_mut()
-                    .set_predicate(String::from(self.predicate_list.predicate));
-                config
-                    .left_table_config_mut()
-                    .set_sort_direction(String::from(self.direction_list.direction));
-            }
-            ActivePanel::Right => {
-                config
-                    .right_table_config_mut()
-                    .set_predicate(String::from(self.predicate_list.predicate));
-                config
-                    .right_table_config_mut()
-                    .set_sort_direction(String::from(self.direction_list.direction));
-            }
-        }
-    }
-
-    fn request_config_change(&self) -> bool {
-        self.change_config
+        Some(ApplicationMessage::None)
     }
 }
 
