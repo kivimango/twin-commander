@@ -1,18 +1,16 @@
-use crate::{
-    app::Application,
-    core::config::Configuration,
-    ui::{user_interface::ActivePanel, BoxedDialog},
-};
-use std::io::Stdout;
-use termion::event::Key;
-use termion::raw::RawTerminal;
-use tui::backend::TermionBackend;
-use tui::{
-    layout::{Alignment, Constraint, Direction, Layout},
-    style::{Color, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, BorderType, Borders, List, ListItem, ListState, Paragraph},
-    Frame,
+use crate::{app::ApplicationMessage, core::config::Configuration, ui::DialogMessage};
+use tuirealm::{
+    command::{Cmd, CmdResult},
+    event::Key,
+    props::{Alignment, BorderType, Color, Style},
+    tui::{
+        layout::{Constraint, Direction, Layout},
+        prelude::Rect,
+        text::{Line, Span, Text},
+        widgets::{Block, List, ListItem, ListState, Paragraph},
+        Frame,
+    },
+    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, State,
 };
 
 const CHECK_MARK: &str = "X";
@@ -57,11 +55,11 @@ pub struct PanelOpionsDialog {
 }
 
 impl PanelOpionsDialog {
-    pub fn new(config: &Configuration) -> Self {
+    pub fn new() -> Self {
         let mut options = [String::from("[ ] Show hidden files")];
-        if config.show_hidden_files() {
+        /*if config.show_hidden_files() {
             check_mark(&mut options[0])
-        }
+        }*/
 
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -74,7 +72,7 @@ impl PanelOpionsDialog {
             request_config_change: false,
             selected_option: 0,
             should_quit: false,
-            show_hidden_files: config.show_hidden_files(),
+            show_hidden_files: false,
         }
     }
 
@@ -87,6 +85,59 @@ impl PanelOpionsDialog {
                 self.show_hidden_files = true;
                 check_mark(&mut self.options[0]);
             }
+        }
+    }
+
+    fn handle_keys(&mut self, key: Key) -> Option<ApplicationMessage> {
+        match self.component {
+            Components::Buttons => match key {
+                Key::Up => {
+                    self.component = Components::OptionsList;
+                    self.list_state.select(Some(self.selected_option));
+                    Some(ApplicationMessage::None)
+                }
+                Key::Left | Key::Right => {
+                    self.focused_button = self.focused_button.next();
+                    Some(ApplicationMessage::None)
+                }
+                Key::Char('\n') => {
+                    match self.focused_button {
+                        Buttons::Apply => self.apply(),
+                        Buttons::Cancel => self.should_quit = true,
+                    };
+                    Some(ApplicationMessage::None)
+                }
+                _ => Some(ApplicationMessage::None),
+            },
+            Components::OptionsList => match key {
+                Key::Up => {
+                    self.select_previous_option();
+                    Some(ApplicationMessage::None)
+                }
+                Key::Down => {
+                    if self.selected_option == self.options.len() - 1 {
+                        self.component = Components::Buttons;
+                        self.list_state.select(None);
+                    } else {
+                        self.select_next_option();
+                    }
+                    Some(ApplicationMessage::None)
+                }
+                Key::Right => {
+                    self.component = Components::Buttons;
+                    self.list_state.select(None);
+                    Some(ApplicationMessage::None)
+                }
+                Key::Char('\n') => {
+                    self.change_config();
+                    Some(ApplicationMessage::ConfigurationChanged(
+                        crate::core::config::ConfigurationKey::ShowHiddenFiles(
+                            self.show_hidden_files,
+                        ),
+                    ))
+                }
+                _ => Some(ApplicationMessage::None),
+            },
         }
     }
 
@@ -110,50 +161,36 @@ impl PanelOpionsDialog {
     }
 }
 
-impl BoxedDialog for PanelOpionsDialog {
-    fn change_configuration(&mut self, config: &mut Configuration, _activa_panel: ActivePanel) {
-        config.set_show_hidden_files(self.show_hidden_files)
-    }
-
-    fn handle_keys(&mut self, key: Key, _app: &mut Application) {
-        match self.component {
-            Components::Buttons => match key {
-                Key::Up => {
-                    self.component = Components::OptionsList;
-                    self.list_state.select(Some(self.selected_option));
+impl Component<ApplicationMessage, NoUserEvent> for PanelOpionsDialog {
+    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        match event {
+            Event::Keyboard(key_event) => match key_event.code {
+                Key::Esc | Key::Function(10) => {
+                    Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))
                 }
-                Key::Left | Key::Right => self.focused_button = self.focused_button.next(),
-                Key::Char('\n') => match self.focused_button {
-                    Buttons::Apply => self.apply(),
-                    Buttons::Cancel => self.should_quit = true,
-                },
-                _ => {}
+                _ => self.handle_keys(key_event.code),
             },
-            Components::OptionsList => match key {
-                Key::Up => self.select_previous_option(),
-                Key::Down => {
-                    if self.selected_option == self.options.len() - 1 {
-                        self.component = Components::Buttons;
-                        self.list_state.select(None);
-                    } else {
-                        self.select_next_option();
-                    }
-                }
-                Key::Right => {
-                    self.component = Components::Buttons;
-                    self.list_state.select(None);
-                }
-                Key::Char('\n') => self.change_config(),
-                _ => {}
-            },
+            _ => None,
         }
     }
+}
 
-    fn render(
-        &self,
-        area: tui::layout::Rect,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
-    ) {
+impl MockComponent for PanelOpionsDialog {
+    fn attr(&mut self, _attr: Attribute, _value: AttrValue) {}
+
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
+        CmdResult::None
+    }
+
+    fn query(&self, _attr: Attribute) -> Option<AttrValue> {
+        None
+    }
+
+    fn state(&self) -> State {
+        State::None
+    }
+
+    fn view(&mut self, frame: &mut Frame, area: Rect) {
         let dialog_layout = Layout::default()
             .direction(Direction::Vertical)
             .constraints([Constraint::Min(3), Constraint::Length(1)].as_ref())
@@ -178,9 +215,8 @@ impl BoxedDialog for PanelOpionsDialog {
         let mut options_list_state = self.list_state.clone();
 
         let buttons = buttons(&self.component, &self.focused_button);
-
         let block = Block::default()
-            .borders(Borders::ALL)
+            .borders(tuirealm::tui::widgets::Borders::ALL)
             .border_style(Style::default().fg(Color::Black))
             .border_type(BorderType::Plain)
             .title("Panel options")
@@ -190,14 +226,6 @@ impl BoxedDialog for PanelOpionsDialog {
         frame.render_widget(block, area);
         frame.render_stateful_widget(options_list, options_layout[0], &mut options_list_state);
         frame.render_widget(buttons, dialog_layout[1]);
-    }
-
-    fn request_config_change(&self) -> bool {
-        self.request_config_change
-    }
-
-    fn should_quit(&self) -> bool {
-        self.should_quit
     }
 }
 
@@ -218,7 +246,7 @@ fn buttons(focused_component: &Components, focused_button: &Buttons) -> Paragrap
             Buttons::Cancel => ("[ ] OK ", "[X] Cancel"),
         }
     };
-    let button_spans = Spans::from(vec![
+    let button_spans = Line::from(vec![
         Span::styled(button_titles.0, button_styles.0),
         Span::styled(button_titles.1, button_styles.1),
     ]);
