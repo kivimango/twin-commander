@@ -1,7 +1,9 @@
-use crate::core::config::{self, try_load_from_file, try_save_to_file, Configuration};
+use crate::core::config::{
+    self, try_load_from_file, try_save_to_file, Configuration, ConfigurationKey,
+};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelState,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelOpionsDialog, PanelState,
     RemoveConfirmationDialog, SortingDialog, TablePanel,
 };
 use crate::ui::{
@@ -45,10 +47,9 @@ pub enum ApplicationMessage {
     /// Requests closing the application
     Close,
 
-    Dialog(DialogMessage),
+    ConfigurationChanged(ConfigurationKey),
 
-    /// Brings up the top menu by stealing the focus from the currently focused component
-    FocusBottomMenu,
+    Dialog(DialogMessage),
 
     /// Messages sent by panels
     Panel(PanelMessage),
@@ -64,6 +65,7 @@ pub struct ApplicationModel {
     app: TuiRealmApplication,
     active_panel: usize,
     area: Rect,
+    config: Configuration,
     dialog: Option<Dialog>,
     should_quit: bool,
     redraw: bool,
@@ -76,6 +78,7 @@ impl ApplicationModel {
             app: initialize(),
             active_panel: LEFT_PANEL_IDX,
             area: Rect::default(),
+            config: Configuration::default(),
             dialog: None,
             should_quit: false,
             redraw: true,
@@ -399,6 +402,14 @@ impl Update<ApplicationMessage> for ApplicationModel {
                     self.should_quit = true;
                     None
                 }
+                ApplicationMessage::ConfigurationChanged(config_key) => {
+                    match config_key {
+                        ConfigurationKey::Direction(direction) => {}
+                        ConfigurationKey::Predicate(predicate) => {}
+                        ConfigurationKey::ShowHiddenFiles(show_hidden) => {}
+                    }
+                    Some(ApplicationMessage::None)
+                }
                 ApplicationMessage::Dialog(dialog_message) => match dialog_message {
                     DialogMessage::ShowHelpDialog => {
                         let help_dialog = Box::new(HelpDialog::new());
@@ -448,7 +459,17 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowFilterDialog => None,
-                    DialogMessage::ShowPanelOptionsDialog => None,
+                    DialogMessage::ShowPanelOptionsDialog => {
+                        let panel_options_dialoge = Box::new(PanelOpionsDialog::new());
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 9, self.area),
+                        });
+                        self.app
+                            .mount(UserInterfaces::Dialog, panel_options_dialoge, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
                     DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
                         let mut current_dir =
@@ -484,10 +505,6 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                 },
-                ApplicationMessage::FocusBottomMenu => {
-                    self.app.active(&UserInterfaces::BottomMenu).unwrap();
-                    Some(ApplicationMessage::None)
-                }
                 ApplicationMessage::Panel(panel_msg) => match panel_msg {
                     PanelMessage::ChangeSortDirection(direction) => {
                         if let Some(component_id) = self.app.focus().cloned() {
