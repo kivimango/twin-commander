@@ -1,7 +1,6 @@
+use crate::ui::{TableSortDirection, TableSortPredicate};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-
-// Sometimes this language is a joke: it can't concatenate a string literal and a const str at compile time...
 
 /// The filename of the configuration file.
 pub const CONFIG_FILE_NAME: &str = "config.toml";
@@ -17,6 +16,23 @@ pub const TABLE_FALLBACK_PATH: &str = "/";
 pub const TABLE_FALLBACK_PREDICATE: &str = "name";
 /// A fallback sort direction value for the `TableSorter`, if the configuration file is missing the `sort_direction` key.
 pub const TABLE_FALLBACK_DIRECTION: &str = "asc";
+
+/// The ConfigurationKey enum is used to represent different types of configuration changes.
+/// It facilitates communication of these changes from the user interface (UI) to the backend.
+#[derive(Debug, PartialEq)]
+pub enum ConfigurationKey {
+    /// Represents a change in the table sort direction.
+    /// The TableSortDirection type specifies the direction (e.g., ascending or descending) for sorting files in the table view.
+    Direction(TableSortDirection),
+
+    /// Represents a change in the table sort predicate.
+    /// The TableSortPredicate type specifies the criterion (e.g., name, size, date) for sorting files in the table view.
+    Predicate(TableSortPredicate),
+
+    /// Represents a change in the visibility of hidden files.
+    /// A bool value indicates whether hidden files should be shown (true) or hidden (false).
+    ShowHiddenFiles(bool),
+}
 
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
