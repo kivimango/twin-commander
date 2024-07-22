@@ -209,6 +209,45 @@ pub fn create_config_dir() -> std::io::Result<()> {
     }
 }
 
+/// Decides the confirmation message to be displayed to the user based on the type
+/// and the count of files marked to delete.
+pub fn get_config() -> Configuration {
+    let default_config = Configuration::default();
+
+    if is_dir_exists() {
+        if is_file_exists() {
+            match try_load_from_file() {
+                Ok(config) => config,
+                Err(_) => default_config, // TODO: log error
+            }
+        } else {
+            match try_save_to_file(&default_config) {
+                Ok(_) => Configuration::default(),
+                Err(_) => Configuration::default(),
+            };
+            default_config
+        }
+    } else if let Err(_error) = create_config_dir() {
+        //TODO: log error
+        default_config
+    } else {
+        match try_save_to_file(&default_config) {
+            Ok(_) => default_config,
+            Err(_) => default_config,
+        }
+    }
+}
+
+pub fn save_config(config: &Configuration) {
+    if !is_dir_exists() {
+        if create_config_dir().is_ok() {
+            let _ = try_save_to_file(config);
+        }
+    } else {
+        let _ = try_save_to_file(config);
+    }
+}
+
 fn fallback_path() -> PathBuf {
     PathBuf::from(TABLE_FALLBACK_PATH)
 }
