@@ -1,5 +1,5 @@
 use crate::core::config::{
-    self, try_load_from_file, try_save_to_file, Configuration, ConfigurationKey,
+    self, Configuration, ConfigurationKey,
 };
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::ui::{
@@ -73,12 +73,12 @@ pub struct ApplicationModel {
 }
 
 impl ApplicationModel {
-    pub fn new() -> Self {
+    pub fn new(config: Configuration) -> Self {
         ApplicationModel {
             app: initialize(),
             active_panel: LEFT_PANEL_IDX,
             area: Rect::default(),
-            config: Configuration::default(),
+            config,
             dialog: None,
             should_quit: false,
             redraw: true,
@@ -86,23 +86,28 @@ impl ApplicationModel {
         }
     }
 
+    /// Returns a reference for the configuration object
+    pub fn get_config(&self) -> &Configuration {
+        &self.config
+    }
+
     /// Initializes the left and right panels by reading their distinct configuration.
     /// Must be called after `self.mount_views()`.
-    fn init_panels(&mut self, config: &Configuration) {
-        let left_path = config.left_table_config().path();
+    fn init_panels(&mut self) {
+        let left_path = self.config.left_table_config().path().to_owned();
         let left_sort_direction =
-            TableSortDirection::from(config.left_table_config().sort_direction());
+            TableSortDirection::from(self.config.left_table_config().sort_direction());
         let left_sort_predicate =
-            TableSortPredicate::from(config.left_table_config().sort_predicate());
+            TableSortPredicate::from(self.config.left_table_config().sort_predicate());
         let left_filters = FilterOptions {
-            show_hidden_files: config.show_hidden_files(),
+            show_hidden_files: self.config.show_hidden_files(),
         };
-        self.panel_states[LEFT_PANEL_IDX].set_current_path(left_path);
+        self.panel_states[LEFT_PANEL_IDX].set_current_path(&left_path);
         self.panel_states[LEFT_PANEL_IDX].set_direction(left_sort_direction);
         self.panel_states[LEFT_PANEL_IDX].set_predicate(left_sort_predicate);
         self.panel_states[LEFT_PANEL_IDX].set_filters(left_filters);
         let left = self.panel_states[LEFT_PANEL_IDX]
-            .list_files(left_path)
+            .list_files(&left_path)
             .unwrap();
         self.panel_states[LEFT_PANEL_IDX].sort();
         self.panel_states[LEFT_PANEL_IDX].set_files(left);
@@ -112,20 +117,20 @@ impl ApplicationModel {
         )
         .unwrap();
 
-        let right_path = config.right_table_config().path();
+        let right_path = self.config.right_table_config().path().to_owned();
         let right_sort_direction =
-            TableSortDirection::from(config.right_table_config().sort_direction());
+            TableSortDirection::from(self.config.right_table_config().sort_direction());
         let right_sort_predicate =
-            TableSortPredicate::from(config.right_table_config().sort_predicate());
+            TableSortPredicate::from(self.config.right_table_config().sort_predicate());
         let right_filters = FilterOptions {
-            show_hidden_files: config.show_hidden_files(),
+            show_hidden_files: self.config.show_hidden_files(),
         };
-        self.panel_states[RIGHT_PANEL_IDX].set_current_path(right_path);
+        self.panel_states[RIGHT_PANEL_IDX].set_current_path(&right_path);
         self.panel_states[RIGHT_PANEL_IDX].set_direction(right_sort_direction);
         self.panel_states[RIGHT_PANEL_IDX].set_predicate(right_sort_predicate);
         self.panel_states[RIGHT_PANEL_IDX].set_filters(right_filters);
         let right = self.panel_states[RIGHT_PANEL_IDX]
-            .list_files(right_path)
+            .list_files(&right_path)
             .unwrap();
         self.panel_states[RIGHT_PANEL_IDX].sort();
         self.panel_states[RIGHT_PANEL_IDX].set_files(right);
@@ -223,10 +228,9 @@ impl ApplicationModel {
     /// If the configuration file is not found, the application attempts to re-create it.
     /// Subsequently, the configuration data is loaded from the configuration file.
     pub fn run(&mut self, terminal: &mut TerminalBridge) {
-        let mut config = get_config();
         self.area = terminal.raw_mut().get_frame().size();
         self.mount_views();
-        self.init_panels(&config);
+        self.init_panels();
 
         while !self.should_quit {
             match self.app.tick(PollStrategy::Once) {
@@ -248,8 +252,7 @@ impl ApplicationModel {
             }
         }
 
-        self.sync_config(&mut config);
-        save_config(&config);
+        self.sync_config();
     }
 
     fn view(&mut self, terminal: &mut TerminalBridge) {
@@ -365,28 +368,28 @@ impl ApplicationModel {
         )
     }
 
-    fn sync_config(&self, config: &mut Configuration) {
-        config.set_show_hidden_files(
+    fn sync_config(&mut self) {
+        self.config.set_show_hidden_files(
             self.panel_states[LEFT_PANEL_IDX]
                 .filters()
                 .show_hidden_files,
         );
-        config
+        self.config
             .left_table_config_mut()
             .set_path(self.panel_states[LEFT_PANEL_IDX].pwd().to_owned());
-        config
+        self.config
             .left_table_config_mut()
             .set_predicate(self.panel_states[LEFT_PANEL_IDX].sort_predicate().into());
-        config
+        self.config
             .left_table_config_mut()
             .set_sort_direction(self.panel_states[LEFT_PANEL_IDX].sort_direction().into());
-        config
+        self.config
             .right_table_config_mut()
             .set_path(self.panel_states[RIGHT_PANEL_IDX].pwd().to_owned());
-        config
+        self.config
             .right_table_config_mut()
             .set_predicate(self.panel_states[RIGHT_PANEL_IDX].sort_predicate().into());
-        config
+        self.config
             .right_table_config_mut()
             .set_sort_direction(self.panel_states[RIGHT_PANEL_IDX].sort_direction().into());
     }
