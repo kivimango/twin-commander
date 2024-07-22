@@ -1,4 +1,5 @@
 use app::ApplicationModel;
+use core::config;
 use std::error::Error;
 use tuirealm::terminal::TerminalBridge;
 
@@ -13,8 +14,11 @@ fn main() -> Result<(), Box<dyn Error>> {
     terminal.raw_mut().hide_cursor()?;
 
     // Initialize the app and run the event loop
-    let mut app = ApplicationModel::new();
+    let config = config::get_config();
+    let mut app = ApplicationModel::new(config);
     app.run(&mut terminal);
+
+    config::save_config(app.get_config());
 
     // Restore terminal and close the application
     terminal.raw_mut().clear()?;
