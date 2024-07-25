@@ -1,4 +1,4 @@
-use super::{TableSortDirection, TableSortPredicate};
+use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::{
     app::ApplicationMessage,
     ui::{DialogMessage, PanelMessage, TopMenuMessage},

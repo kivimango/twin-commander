@@ -1,5 +1,5 @@
 use crate::core::list_dir::{list_dir, DirContent, FilterOptions};
-use crate::ui::{TableSortDirection, TableSortPredicate, TableSorter};
+use crate::core::sort::{TableSortDirection, TableSortPredicate, TableSorter};
 use std::io;
 use std::path::{Path, PathBuf};
 

@@ -1,14 +1,10 @@
 mod table_model;
-mod table_sort;
 mod table_view;
 
 use tuirealm::tui::layout::Constraint;
 use tuirealm::tui::layout::Direction;
 use tuirealm::tui::layout::Layout;
 use tuirealm::tui::layout::Rect;
-
-pub use self::table_sort::*;
-pub use self::table_view::*;
 
 /// helper function to create a centered rect using up certain percentage of the available rect `r`
 pub fn centered_rect(percent_x: u16, percent_y: u16, r: Rect) -> Rect {

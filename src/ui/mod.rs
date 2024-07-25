@@ -13,15 +13,16 @@ mod table;
 //mod user_interface;
 //mod widgets;
 
+use crate::core::sort::TableSortDirection;
+use crate::core::sort::TableSortPredicate;
+
 pub use self::bottom_menu::*;
 pub use self::dialog::*;
 pub use self::menu::*;
 pub use self::panel::*;
 pub use self::panel_state::*;
-pub use self::table::*;
 //pub use self::user_interface::UserInterface;
 //pub use self::widgets::*;
-pub use self::TopMenuMessage::*;
 
 #[derive(Debug, PartialEq)]
 pub enum PanelMessage {
