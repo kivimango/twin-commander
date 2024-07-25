@@ -21,7 +21,9 @@ pub const TABLE_FALLBACK_DIRECTION: &str = "asc";
 /// It facilitates communication of these changes from the user interface (UI) to the backend.
 #[derive(Debug, PartialEq)]
 pub enum ConfigurationKey {
-    /// Represents a change in the table sort direction.
+    /// Represents a change in the table sort direction and/or predicate configuration.
+    Sorting(TableSortDirection, TableSortPredicate),
+    
     /// The TableSortDirection type specifies the direction (e.g., ascending or descending) for sorting files in the table view.
     Direction(TableSortDirection),
 
@@ -209,8 +211,6 @@ pub fn create_config_dir() -> std::io::Result<()> {
     }
 }
 
-/// Decides the confirmation message to be displayed to the user based on the type
-/// and the count of files marked to delete.
 pub fn get_config() -> Configuration {
     let default_config = Configuration::default();
 
