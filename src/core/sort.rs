@@ -1,3 +1,4 @@
+use serde::{Deserialize, Serialize};
 use crate::core::list_dir::DirContent;
 use std::cmp::Ordering;
 
@@ -13,7 +14,7 @@ pub(crate) trait SortBy {
 
 /// Specifies the order of the sorting of the rows in the `TableView`.
 /// Default is TableSortDirection::Ascending.
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum TableSortDirection {
     // Values are arranged from the lowest to the highest.
     /// The lowest value will be placed on the top of the
@@ -152,19 +153,13 @@ fn get_type_by(direction: TableSortDirection, predicate: TableSortPredicate) -> 
 
 /// Defines the column on which the TableView should be sorted by.
 /// Default is TableSortPredicate::Name.
-#[derive(Copy, Clone, Debug, Default, PartialEq)]
+#[derive(Copy, Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum TableSortPredicate {
     #[default]
     Name,
     Size,
     LastModified,
 }
-
-/*impl Default for TableSortPredicate {
-    fn default() -> Self {
-        TableSortPredicate::Name
-    }
-}*/
 
 impl From<&String> for TableSortPredicate {
     fn from(value: &String) -> Self {
