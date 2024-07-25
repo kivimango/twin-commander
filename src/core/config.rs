@@ -1,6 +1,6 @@
-use crate::ui::{TableSortDirection, TableSortPredicate};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
+use super::sort::{TableSortDirection, TableSortPredicate};
 
 /// The filename of the configuration file.
 pub const CONFIG_FILE_NAME: &str = "config.toml";
@@ -41,10 +41,12 @@ pub enum ConfigurationKey {
 pub struct TableConfiguration {
     #[serde(default = "fallback_path")]
     path: PathBuf,
+
     #[serde(default = "fallback_predicate")]
-    sort_predicate: String,
+    sort_predicate: TableSortPredicate,
+
     #[serde(default = "fallback_direction")]
-    sort_direction: String,
+    sort_direction: TableSortDirection,
 }
 
 impl TableConfiguration {
@@ -61,23 +63,23 @@ impl TableConfiguration {
 
     /// Returns the last saved String representation of the `TableSortPredicate`.
     /// `UserInterface` will convert this value into a proper `TableSortPredicate` type on instantiation of a `TableView`.
-    pub fn sort_predicate(&self) -> &String {
-        &self.sort_predicate
+    pub fn sort_predicate(&self) -> TableSortPredicate {
+        self.sort_predicate
     }
 
     /// Sets the String representation of the sorting predicate `TableSortPredicate`.
-    pub fn set_predicate(&mut self, predicate: String) {
+    pub fn set_predicate(&mut self, predicate: TableSortPredicate) {
         self.sort_predicate = predicate;
     }
 
     /// Returns the last saved String representation of the `TableSortDirection`.
     /// `UserInterface` will convert this value into a proper `TableSortdirection` type on instantiation of a `TableView`.
-    pub fn sort_direction(&self) -> &String {
-        &self.sort_direction
+    pub fn sort_direction(&self) -> TableSortDirection {
+        self.sort_direction
     }
 
     /// Sets the String representation of the sorting direction `TableSortdirection`.
-    pub fn set_sort_direction(&mut self, direction: String) {
+    pub fn set_sort_direction(&mut self, direction: TableSortDirection) {
         self.sort_direction = direction;
     }
 }
@@ -87,8 +89,8 @@ impl Default for TableConfiguration {
     fn default() -> Self {
         TableConfiguration {
             path: TABLE_FALLBACK_PATH.into(),
-            sort_predicate: String::from(TABLE_FALLBACK_PREDICATE),
-            sort_direction: String::from(TABLE_FALLBACK_DIRECTION),
+            sort_direction: TableSortDirection::default(),
+            sort_predicate: TableSortPredicate::default(),
         }
     }
 }
@@ -252,19 +254,20 @@ fn fallback_path() -> PathBuf {
     PathBuf::from(TABLE_FALLBACK_PATH)
 }
 
-fn fallback_predicate() -> String {
-    String::from(TABLE_FALLBACK_PREDICATE)
+fn fallback_predicate() -> TableSortPredicate {
+    TableSortPredicate::default()
 }
 
-fn fallback_direction() -> String {
-    String::from(TABLE_FALLBACK_DIRECTION)
+fn fallback_direction() -> TableSortDirection {
+    TableSortDirection::default()
 }
 
 #[cfg(test)]
 mod test {
+    use crate::core::sort::{TableSortDirection, TableSortPredicate};
+
     use super::{
-        Configuration, TableConfiguration, TABLE_FALLBACK_DIRECTION, TABLE_FALLBACK_PATH,
-        TABLE_FALLBACK_PREDICATE,
+        Configuration, TableConfiguration,TABLE_FALLBACK_PATH,
     };
     use std::path::PathBuf;
 
@@ -273,8 +276,8 @@ mod test {
         let table_config = TableConfiguration::default();
 
         assert_eq!(PathBuf::from(TABLE_FALLBACK_PATH), *table_config.path());
-        assert_eq!(TABLE_FALLBACK_PREDICATE, table_config.sort_predicate());
-        assert_eq!(TABLE_FALLBACK_DIRECTION, table_config.sort_direction());
+        assert_eq!(TableSortPredicate::Name, table_config.sort_predicate());
+        assert_eq!(TableSortDirection::Ascending, table_config.sort_direction());
     }
 
     #[test]
