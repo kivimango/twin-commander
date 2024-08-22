@@ -1,4 +1,8 @@
-use crate::{app::ApplicationMessage, core::config::Configuration, ui::DialogMessage};
+use crate::{
+    app::ApplicationMessage,
+    core::config::{Configuration, ConfigurationKey},
+    ui::DialogMessage,
+};
 use tuirealm::{
     command::{Cmd, CmdResult},
     event::Key,
@@ -48,18 +52,16 @@ pub struct PanelOpionsDialog {
     focused_button: Buttons,
     list_state: ListState,
     options: [String; 1],
-    request_config_change: bool,
     selected_option: usize,
-    should_quit: bool,
     show_hidden_files: bool,
 }
 
 impl PanelOpionsDialog {
-    pub fn new() -> Self {
+    pub fn new(config: &Configuration) -> Self {
         let mut options = [String::from("[ ] Show hidden files")];
-        /*if config.show_hidden_files() {
+        if config.show_hidden_files() {
             check_mark(&mut options[0])
-        }*/
+        }
 
         let mut list_state = ListState::default();
         list_state.select(Some(0));
@@ -69,10 +71,8 @@ impl PanelOpionsDialog {
             focused_button: Buttons::Cancel,
             list_state,
             options,
-            request_config_change: false,
             selected_option: 0,
-            should_quit: false,
-            show_hidden_files: false,
+            show_hidden_files: config.show_hidden_files(),
         }
     }
 
@@ -100,13 +100,12 @@ impl PanelOpionsDialog {
                     self.focused_button = self.focused_button.next();
                     Some(ApplicationMessage::None)
                 }
-                Key::Char('\n') => {
-                    match self.focused_button {
-                        Buttons::Apply => self.apply(),
-                        Buttons::Cancel => self.should_quit = true,
-                    };
-                    Some(ApplicationMessage::None)
-                }
+                Key::Enter => match self.focused_button {
+                    Buttons::Apply => Some(ApplicationMessage::ConfigurationChanged(
+                        ConfigurationKey::ShowHiddenFiles(self.show_hidden_files),
+                    )),
+                    Buttons::Cancel => Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog)),
+                },
                 _ => Some(ApplicationMessage::None),
             },
             Components::OptionsList => match key {
@@ -128,13 +127,9 @@ impl PanelOpionsDialog {
                     self.list_state.select(None);
                     Some(ApplicationMessage::None)
                 }
-                Key::Char('\n') => {
+                Key::Enter => {
                     self.change_config();
-                    Some(ApplicationMessage::ConfigurationChanged(
-                        crate::core::config::ConfigurationKey::ShowHiddenFiles(
-                            self.show_hidden_files,
-                        ),
-                    ))
+                    Some(ApplicationMessage::None)
                 }
                 _ => Some(ApplicationMessage::None),
             },
@@ -153,11 +148,6 @@ impl PanelOpionsDialog {
             self.selected_option += 1;
             self.list_state.select(Some(self.selected_option));
         }
-    }
-
-    fn apply(&mut self) {
-        self.request_config_change = true;
-        self.should_quit = true;
     }
 }
 
