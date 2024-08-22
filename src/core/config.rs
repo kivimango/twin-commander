@@ -1,6 +1,6 @@
+use super::sort::{TableSortDirection, TableSortPredicate};
 use serde::{Deserialize, Serialize};
 use std::path::PathBuf;
-use super::sort::{TableSortDirection, TableSortPredicate};
 
 /// The filename of the configuration file.
 pub const CONFIG_FILE_NAME: &str = "config.toml";
@@ -23,7 +23,7 @@ pub const TABLE_FALLBACK_DIRECTION: &str = "asc";
 pub enum ConfigurationKey {
     /// Represents a change in the table sort direction and/or predicate configuration.
     Sorting(TableSortDirection, TableSortPredicate),
-    
+
     /// The TableSortDirection type specifies the direction (e.g., ascending or descending) for sorting files in the table view.
     Direction(TableSortDirection),
 
@@ -39,13 +39,13 @@ pub enum ConfigurationKey {
 #[derive(Debug, PartialEq, Serialize, Deserialize)]
 #[serde(default)]
 pub struct TableConfiguration {
-    #[serde(default = "fallback_path")]
+    //#[serde(default = "fallback_path")]
     path: PathBuf,
 
-    #[serde(default = "fallback_predicate")]
+    //#[serde(default = "fallback_predicate")]
     sort_predicate: TableSortPredicate,
 
-    #[serde(default = "fallback_direction")]
+    //#[serde(default = "fallback_direction")]
     sort_direction: TableSortDirection,
 }
 
@@ -254,21 +254,19 @@ fn fallback_path() -> PathBuf {
     PathBuf::from(TABLE_FALLBACK_PATH)
 }
 
-fn fallback_predicate() -> TableSortPredicate {
+/*fn fallback_predicate() -> TableSortPredicate {
     TableSortPredicate::default()
 }
 
 fn fallback_direction() -> TableSortDirection {
     TableSortDirection::default()
-}
+}*/
 
 #[cfg(test)]
 mod test {
     use crate::core::sort::{TableSortDirection, TableSortPredicate};
 
-    use super::{
-        Configuration, TableConfiguration,TABLE_FALLBACK_PATH,
-    };
+    use super::{Configuration, TableConfiguration, TABLE_FALLBACK_PATH};
     use std::path::PathBuf;
 
     #[test]
