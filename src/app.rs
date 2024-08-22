@@ -1,14 +1,11 @@
-use crate::core::config::{
-    self, Configuration, ConfigurationKey,
-};
+use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
+use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelOpionsDialog, PanelState,
     RemoveConfirmationDialog, SortingDialog, TablePanel,
 };
-use crate::ui::{
-    BottomMenu, PanelMessage, TableSortDirection, TableSortPredicate, TopMenu, TopMenuMessage,
-};
+use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -47,6 +44,7 @@ pub enum ApplicationMessage {
     /// Requests closing the application
     Close,
 
+    /// Singals that the configuration has been changed from the UI
     ConfigurationChanged(ConfigurationKey),
 
     Dialog(DialogMessage),
@@ -405,13 +403,72 @@ impl Update<ApplicationMessage> for ApplicationModel {
                     self.should_quit = true;
                     None
                 }
-                ApplicationMessage::ConfigurationChanged(config_key) => {
-                    match config_key {
-                        ConfigurationKey::Direction(direction) => {}
-                        ConfigurationKey::Predicate(predicate) => {}
-                        ConfigurationKey::ShowHiddenFiles(show_hidden) => {}
+                ApplicationMessage::ConfigurationChanged(config_keys) => {
+                    if self.app.mounted(&UserInterfaces::Dialog) {
+                        self.dialog = None;
+                        self.app.umount(&UserInterfaces::Dialog).unwrap();
                     }
-                    Some(ApplicationMessage::None)
+
+                    self.app.blur().unwrap();
+
+                    let next_message = match config_keys {
+                        ConfigurationKey::Direction(direction) => {
+                            ApplicationMessage::Panel(PanelMessage::ChangeSortDirection(direction))
+                        }
+                        ConfigurationKey::Predicate(predicate) => {
+                            ApplicationMessage::Panel(PanelMessage::ChangeSortPredicate(predicate))
+                        }
+                        ConfigurationKey::ShowHiddenFiles(show_hidden) => {
+                            self.config.set_show_hidden_files(show_hidden);
+                            self.panel_states[self.active_panel].set_filters(FilterOptions {
+                                show_hidden_files: show_hidden,
+                            });
+                            let path = self.panel_states[self.active_panel].pwd();
+                            if let Ok(files) = self.panel_states[self.active_panel].list_files(path)
+                            {
+                                self.panel_states[self.active_panel].set_files(files);
+                            }
+                            // TODO: error handling
+                            ApplicationMessage::None
+                        }
+                        ConfigurationKey::Sorting(direction, predicate) => {
+                            match self.active_panel {
+                                LEFT_PANEL_IDX => {
+                                    self.config
+                                        .left_table_config_mut()
+                                        .set_sort_direction(direction);
+                                    self.config.left_table_config_mut().set_predicate(predicate);
+                                }
+                                RIGHT_PANEL_IDX => {
+                                    self.config
+                                        .right_table_config_mut()
+                                        .set_sort_direction(direction);
+                                    self.config
+                                        .right_table_config_mut()
+                                        .set_predicate(predicate);
+                                }
+                                _ => {}
+                            }
+
+                            self.panel_states[self.active_panel].set_direction(direction);
+                            self.panel_states[self.active_panel].set_predicate(predicate);
+
+                            // TODO: extract into method
+                            if let Some(component_id) = self.app.focus().cloned() {
+                                if let Some(active_panel) = active_panel_idx(&component_id) {
+                                    self.panel_states[self.active_panel]
+                                        .list_files(self.panel_states[self.active_panel].pwd())
+                                        .unwrap();
+                                    self.set_panel_files(&component_id).unwrap();
+                                    let headers = self.panel_states[active_panel].headers();
+                                    self.set_panel_headers(&component_id, headers).unwrap();
+                                }
+                            }
+                            ApplicationMessage::None
+                        }
+                    };
+
+                    Some(next_message)
                 }
                 ApplicationMessage::Dialog(dialog_message) => match dialog_message {
                     DialogMessage::ShowHelpDialog => {
@@ -463,7 +520,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                     }
                     DialogMessage::ShowFilterDialog => None,
                     DialogMessage::ShowPanelOptionsDialog => {
-                        let panel_options_dialoge = Box::new(PanelOpionsDialog::new());
+                        let panel_options_dialoge = Box::new(PanelOpionsDialog::new(&self.config));
                         self.dialog = Some(Dialog {
                             area: fixed_height_centered_rect(50, 9, self.area),
                         });
@@ -483,7 +540,6 @@ impl Update<ApplicationMessage> for ApplicationModel {
 
                         match std::fs::create_dir(&path) {
                             Ok(_) => {
-                                println!("ok");
                                 return Some(ApplicationMessage::Dialog(
                                     DialogMessage::CloseDialog,
                                 ));
