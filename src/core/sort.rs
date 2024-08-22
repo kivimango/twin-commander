@@ -1,5 +1,5 @@
-use serde::{Deserialize, Serialize};
 use crate::core::list_dir::DirContent;
+use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 
 const PREDICATE_NAME: usize = 0;
@@ -37,7 +37,7 @@ pub enum TableSortDirection {
     }
 }*/
 
-impl From<&String> for TableSortDirection {
+/*impl From<&String> for TableSortDirection {
     fn from(value: &String) -> Self {
         let value = value.to_lowercase();
         let value = value.as_str();
@@ -49,7 +49,7 @@ impl From<&String> for TableSortDirection {
             TableSortDirection::default()
         }
     }
-}
+}*/
 
 impl From<usize> for TableSortDirection {
     fn from(value: usize) -> Self {
@@ -61,14 +61,14 @@ impl From<usize> for TableSortDirection {
     }
 }
 
-impl From<TableSortDirection> for String {
+/*impl From<TableSortDirection> for String {
     fn from(value: TableSortDirection) -> Self {
         match value {
             TableSortDirection::Ascending => String::from("asc"),
             TableSortDirection::Descending => String::from("desc"),
         }
     }
-}
+}*/
 
 impl TableSortDirection {
     /// Reverses the current sort order.
@@ -161,7 +161,7 @@ pub enum TableSortPredicate {
     LastModified,
 }
 
-impl From<&String> for TableSortPredicate {
+/*impl From<&String> for TableSortPredicate {
     fn from(value: &String) -> Self {
         let value = value.to_lowercase();
         if value == "name" {
@@ -174,9 +174,9 @@ impl From<&String> for TableSortPredicate {
             TableSortPredicate::default()
         }
     }
-}
+}*/
 
-impl From<TableSortPredicate> for String {
+/*impl From<TableSortPredicate> for String {
     fn from(value: TableSortPredicate) -> Self {
         match value {
             TableSortPredicate::Name => String::from("name"),
@@ -184,7 +184,7 @@ impl From<TableSortPredicate> for String {
             TableSortPredicate::LastModified => String::from("modified"),
         }
     }
-}
+}*/
 
 impl From<usize> for TableSortPredicate {
     fn from(value: usize) -> Self {
@@ -504,7 +504,7 @@ mod test {
         return files;
     }
 
-    #[test]
+    /*#[test]
     fn test_from_string_on_sort_direction_asc() {
         let from_uppercase = String::from("ASC");
         let direction = TableSortDirection::from(&from_uppercase);
@@ -571,7 +571,7 @@ mod test {
         assert_eq!(predicate, TableSortPredicate::Size);
     }
 
-    #[test]
+    /*#[test]
     fn test_from_string_on_sort_predicate_last_modified() {
         let from_uppercase = String::from("MODIFIED");
         let predicate = TableSortPredicate::from(&from_uppercase);
@@ -591,7 +591,7 @@ mod test {
         let invalid_input = String::from("invalidinput");
         let predicate = TableSortPredicate::from(&invalid_input);
         assert_eq!(predicate, TableSortPredicate::default());
-    }
+    }*/
 
     #[test]
     fn test_into_string_on_sort_direction() {
@@ -613,7 +613,7 @@ mod test {
         assert_eq!(name, String::from("name"));
         assert_eq!(size, String::from("size"));
         assert_eq!(last_modified, String::from("modified"));
-    }
+    }*/
 
     #[test]
     fn test_predicate_to_usize() {
