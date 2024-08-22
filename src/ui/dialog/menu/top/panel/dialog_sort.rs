@@ -1,6 +1,10 @@
 use crate::{
     app::ApplicationMessage,
-    ui::{DialogMessage, TableSortDirection, TableSortPredicate},
+    core::{
+        config::ConfigurationKey,
+        sort::{TableSortDirection, TableSortPredicate},
+    },
+    ui::DialogMessage,
 };
 use std::borrow::Cow;
 use tuirealm::{
@@ -276,6 +280,7 @@ impl SortingDialog {
         let components = Components::PredicateColumn;
         predicate_list.state.select(Some(predicate_list.selected));
         predicate_list.check_mark();
+        direction_list.state.select(Some(direction_list.selected));
         direction_list.check_mark();
 
         SortingDialog {
@@ -305,7 +310,9 @@ impl SortingDialog {
                         self.predicate_list.select_next();
                     }
                 }
-                Key::Enter => self.predicate_list.check_mark(),
+                Key::Enter => {
+                    self.predicate_list.check_mark();
+                }
                 _ => {}
             },
             Components::DirectionColumn => match key {
@@ -339,7 +346,7 @@ impl SortingDialog {
                 Key::Enter => match self.focused_button {
                     Buttons::Apply => {
                         self.config_changed = true;
-                        return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog));
+                        return self.message_for_changed_option();
                     }
                     Buttons::Cancel => {
                         self.config_changed = false;
@@ -350,6 +357,15 @@ impl SortingDialog {
             },
         }
         Some(ApplicationMessage::None)
+    }
+
+    fn message_for_changed_option(&self) -> Option<ApplicationMessage> {
+        let direction = self.direction_list.direction;
+        let predicate = self.predicate_list.predicate;
+        println!("before msg dir: {:?} pred: {:?}", direction, predicate);
+        Some(ApplicationMessage::ConfigurationChanged(
+            ConfigurationKey::Sorting(direction, predicate),
+        ))
     }
 }
 
