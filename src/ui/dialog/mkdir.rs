@@ -3,7 +3,7 @@ use tui_realm_stdlib::Input;
 use tuirealm::{
     command::{Cmd, CmdResult, Position},
     event::{Key, KeyEvent},
-    props::{Alignment, BorderSides, Borders, Color, Style},
+    props::{Alignment, BorderType, Borders, Color, InputType, Style},
     tui::{
         layout::{Constraint, Layout, Rect},
         text::{Line, Span},
@@ -47,10 +47,18 @@ impl MkDirDialog {
     pub fn new() -> Self {
         MkDirDialog {
             button: Buttons::Ok,
-            component: Input::default()
+                component: Input::default()
                 .background(Color::Cyan)
-                .borders(Borders::default().sides(BorderSides::NONE))
-                .foreground(Color::White),
+                .borders(
+                    Borders::default()
+                        .modifiers(BorderType::Rounded)
+                        .color(Color::White),
+                )
+                .foreground(Color::White)
+                .input_type(InputType::Text)
+                .title("New directory name", Alignment::Left)
+                .value("")
+                .invalid_style(Style::default().fg(Color::Red)),
             _properties: Props::default(),
         }
     }
@@ -146,13 +154,13 @@ impl MockComponent for MkDirDialog {
     fn view(&mut self, frame: &mut Frame, area: Rect) {
         let dialog_layout = Layout::default()
             .constraints([
-                Constraint::Length(1),
-                Constraint::Length(2),
+                //Constraint::Length(1),
+                Constraint::Length(3),
                 Constraint::Length(1),
                 Constraint::Length(1),
             ])
             .direction(tuirealm::tui::layout::Direction::Vertical)
-            .margin(1)
+            .margin(2)
             .split(area);
 
         let block = Block::default()
@@ -165,9 +173,9 @@ impl MockComponent for MkDirDialog {
             .title_alignment(Alignment::Center);
         frame.render_widget(block, area);
 
-        let p = Paragraph::new("New directory name:")
+        /*let p = Paragraph::new("New directory name:")
             .style(Style::default().bg(Color::White).fg(Color::Black));
-        frame.render_widget(p, dialog_layout[0]);
+        frame.render_widget(p, dialog_layout[0]);*/
 
         let button_titles = match self.button {
             Buttons::Ok => ("[X] OK ", "[ ] Cancel"),
@@ -192,7 +200,7 @@ impl MockComponent for MkDirDialog {
         let buttons = Line::from(vec![button_styles.0, button_styles.1]);
         let buttons = Paragraph::new(buttons).alignment(Alignment::Center);
 
-        self.component.view(frame, dialog_layout[1]);
-        frame.render_widget(buttons, dialog_layout[3]);
+        self.component.view(frame, dialog_layout[0]);
+        frame.render_widget(buttons, dialog_layout[2]);
     }
 }
