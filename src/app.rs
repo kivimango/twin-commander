@@ -2,8 +2,7 @@ use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, PanelOpionsDialog, PanelState,
-    RemoveConfirmationDialog, SortingDialog, TablePanel,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -483,10 +482,10 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowMkDirDialog => {
-                        let dialog = RemoveConfirmationDialog::default();
+                        let dialog = MkDirDialog::new();
                         let mkdir_dialog = Box::new(dialog);
                         self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 7, self.area),
+                            area: fixed_height_centered_rect(50, 9, self.area),
                         });
                         self.app
                             .mount(UserInterfaces::Dialog, mkdir_dialog, vec![])
