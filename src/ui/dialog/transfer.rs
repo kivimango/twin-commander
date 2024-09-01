@@ -1,22 +1,22 @@
-use super::{TransferProgress, TransferStrategy};
-use crate::core::calculate_progress_percentage;
-use humansize::{SizeFormatter, DECIMAL};
-use std::{
-    io::Stdout,
-    path::Path,
-    sync::mpsc::{Receiver, TryRecvError},
-    time::Instant,
+use std::path::Path;
+use tuirealm::{
+    command::{Cmd, CmdResult},
+    event::{Key, KeyEvent},
+    props::{Alignment, BorderType, Color, Style},
+    tui::{
+        layout::{Constraint, Direction, Layout, Rect},
+        style::Stylize,
+        text::{Line, Span, Text},
+        widgets::{Block, Paragraph, Wrap},
+    },
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
 };
-use std::{path::PathBuf, sync::mpsc};
-use termion::{event::Key, raw::RawTerminal};
-use tui::{
-    backend::TermionBackend,
-    layout::{Alignment, Constraint, Layout, Rect},
-    style::{Color, Modifier, Style},
-    text::{Span, Spans, Text},
-    widgets::{Block, Borders, Gauge, Paragraph},
-    Frame,
-};
+
+use super::DialogMessage;
+use crate::app::ApplicationMessage;
+
+pub const TAG_SOURCE: &str = "source";
+pub const TAG_TARGET: &str = "target";
 
 enum Buttons {
     Ok,
@@ -32,129 +32,52 @@ impl Buttons {
     }
 }
 
-#[derive(Default)]
-enum TransferDialogStatus {
-    #[default]
-    WaitingForConfirmation,
-    Transfering,
-    TransferFinished,
-}
-
-pub struct TransferDialog<T> {
-    copy_progress: TransferProgress,
+/// A base UI component for displaying confirmation dialog for file moving operations.
+/// It displays a source directory, a target directory and two buttons, to accept (Ok) or cancel the operation.
+struct TransferConfirmationDialog {
     focused_button: Buttons,
-    source: PathBuf,
-    destination: PathBuf,
-    status: TransferDialogStatus,
-    strategy: T,
-    rx: Option<Receiver<TransferProgress>>,
-    should_quit: bool,
-    start_time: Instant,
-    title: String,
+    properties: Props,
 }
 
-impl<T> TransferDialog<T>
-where
-    T: TransferStrategy,
-{
-    pub(crate) fn new<P: AsRef<Path>>(
-        source: P,
-        destination: P,
-        transfer_model: T,
-        title: String,
-    ) -> Self {
-        TransferDialog {
-            copy_progress: TransferProgress::None,
-            focused_button: Buttons::Ok,
-            source: PathBuf::from(source.as_ref()),
-            destination: PathBuf::from(destination.as_ref()),
-            status: TransferDialogStatus::default(),
-            strategy: transfer_model,
-            rx: None,
-            should_quit: false,
-            start_time: Instant::now(),
-            title,
+impl Default for TransferConfirmationDialog {
+    fn default() -> Self {
+        let mut properties = Props::default();
+        properties.set(Attribute::Background, AttrValue::Color(Color::White));
+        properties.set(Attribute::Foreground, AttrValue::Color(Color::Black));
+        properties.set(Attribute::HighlightedColor, AttrValue::Color(Color::Cyan));
+        properties.set(Attribute::Color, AttrValue::Color(Color::Gray));
+
+        TransferConfirmationDialog {
+            focused_button: Buttons::Cancel,
+            properties: Props::default(),
         }
     }
+}
 
-    pub(crate) fn handle_key(&mut self, key: Key) {
-        match key {
-            Key::Char('\n') => {
-                if let TransferDialogStatus::WaitingForConfirmation = self.status {
-                    match self.focused_button {
-                        Buttons::Ok => {
-                            self.start_time = Instant::now();
-                            self.status = TransferDialogStatus::Transfering;
-                            let (tx, rx) = mpsc::channel();
-                            self.rx = Some(rx);
-                            if self.source.is_dir() {
-                                self.strategy.transfer_dir::<&std::path::Path>(
-                                    self.source.as_ref(),
-                                    self.destination.as_ref(),
-                                    tx,
-                                );
-                            } else if self.source.is_file() {
-                                self.strategy.transfer_file::<&std::path::Path>(
-                                    self.source.as_ref(),
-                                    self.destination.as_ref(),
-                                    tx,
-                                );
-                            }
-                        }
-                        Buttons::Cancel => self.should_quit = true,
-                    }
-                }
-            }
-            Key::Left | Key::Right | Key::Up | Key::Down => {
-                self.focused_button.next();
-            }
-            _ => {}
-        }
+impl MockComponent for TransferConfirmationDialog {
+    fn attr(&mut self, attr: Attribute, value: AttrValue) {
+        self.properties.set(attr, value)
     }
 
-    pub(crate) fn tick(&mut self) {
-        if let Some(rx) = &self.rx {
-            match rx.try_recv() {
-                Ok(copy_progress) => {
-                    self.copy_progress = copy_progress;
-                }
-                Err(_err) => match _err {
-                    TryRecvError::Disconnected => {
-                        self.status = TransferDialogStatus::TransferFinished;
-                        self.should_quit = true;
-                    }
-                    TryRecvError::Empty => {}
-                },
-            }
-        }
+    fn perform(&mut self, _cmd: Cmd) -> CmdResult {
+        CmdResult::None
     }
 
-    pub(crate) fn render(
-        &self,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
-        area: Rect,
-    ) {
-        match self.status {
-            TransferDialogStatus::WaitingForConfirmation => {
-                self.show_confirmation_dialog(frame, area)
-            }
-            TransferDialogStatus::Transfering => self.show_transfer_progress(frame, area),
-            TransferDialogStatus::TransferFinished => (),
-        }
+    fn query(&self, attr: Attribute) -> Option<AttrValue> {
+        self.properties.get(attr)
     }
 
-    fn show_confirmation_dialog(
-        &self,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
-        area: Rect,
-    ) {
+    fn state(&self) -> State {
+        State::None
+    }
+
+    fn view(&mut self, frame: &mut Frame, area: Rect) {
         let button_titles = {
             match self.focused_button {
                 Buttons::Ok => ("[X] OK ", "[ ] Cancel"),
                 Buttons::Cancel => ("[ ] OK ", "[X] Cancel"),
             }
         };
-        let dialog_area = Rect::new(area.x, area.y, area.width, area.height);
         let layout = Layout::default()
             .constraints([
                 Constraint::Length(1),
@@ -162,170 +85,196 @@ where
                 Constraint::Length(1),
                 Constraint::Length(1),
                 Constraint::Length(1),
-                Constraint::Length(1),
             ])
-            .direction(tui::layout::Direction::Vertical)
+            .direction(Direction::Vertical)
             .margin(1)
             .split(area);
 
+        let title = self
+            .properties
+            .get_or(
+                Attribute::Title,
+                AttrValue::Title((String::from("Copy"), Alignment::Center)),
+            )
+            .unwrap_title();
+        let source = self
+            .properties
+            .get(Attribute::Custom(TAG_SOURCE))
+            .unwrap()
+            .unwrap_string();
+        let target = self
+            .properties
+            .get(Attribute::Custom(TAG_TARGET))
+            .unwrap()
+            .unwrap_string();
+
+        let background = self
+            .properties
+            .get_or(Attribute::Background, AttrValue::Color(Color::White))
+            .unwrap_color();
+        let text_color = self
+            .properties
+            .get_or(Attribute::Foreground, AttrValue::Color(Color::Black))
+            .unwrap_color();
+        let title_color = self
+            .properties
+            .get_or(Attribute::HighlightedColor, AttrValue::Color(Color::Cyan))
+            .unwrap_color();
+        let input_text_color = self
+            .properties
+            .get_or(Attribute::Color, AttrValue::Color(Color::Gray))
+            .unwrap_color();
+
+        let button_styles = {
+            match self.focused_button {
+                Buttons::Ok => (
+                    Style::default().bg(Color::Cyan).fg(Color::White),
+                    Style::default().fg(text_color),
+                ),
+                Buttons::Cancel => (
+                    Style::default().fg(Color::Black),
+                    Style::default().bg(Color::Cyan).fg(Color::White),
+                ),
+            }
+        };
+
         let block = Block::default()
-            .border_type(tui::widgets::BorderType::Rounded)
-            .borders(Borders::ALL)
-            .title(self.title.as_ref())
-            .title_alignment(Alignment::Center);
-        let label_src = Paragraph::new(Text::styled("Source:", Style::default().fg(Color::White)));
-        let label_src_path = Paragraph::new(Text::styled(
-            self.source.display().to_string(),
-            Style::default()
-                .bg(Color::Cyan)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        ));
-        let label_dest = Paragraph::new(Text::styled(
-            "Destination:",
-            Style::default().fg(Color::White),
-        ));
-        let label_dest_path = Paragraph::new(Text::styled(
-            self.destination.display().to_string(),
-            Style::default()
-                .bg(Color::Cyan)
-                .fg(Color::White)
-                .add_modifier(Modifier::BOLD),
-        ));
-        let buttons = Paragraph::new(Spans::from(vec![
-            Span::styled(button_titles.0, Style::default().fg(Color::White)),
-            Span::styled(button_titles.1, Style::default().fg(Color::White)),
+            .bg(Color::White)
+            .border_type(BorderType::Rounded)
+            .border_style(Style::default().bg(background).fg(text_color))
+            .borders(tuirealm::tui::widgets::Borders::ALL)
+            .title_style(
+                Style::default()
+                    .bg(background)
+                    .fg(title_color)
+                    .add_modifier(tuirealm::tui::prelude::Modifier::BOLD),
+            )
+            .title_top(title.0)
+            .title_alignment(title.1);
+
+        let spans = vec![
+            Line::from(vec![Span::styled(
+                "Source:",
+                Style::default().fg(text_color),
+            )]),
+            Line::from(vec![Span::styled(
+                source,
+                Style::default().bg(title_color).fg(input_text_color),
+            )]),
+            Line::from(vec![Span::styled(
+                "Destination:",
+                Style::default().fg(text_color),
+            )]),
+            Line::from(vec![Span::styled(
+                target,
+                Style::default().bg(title_color).fg(input_text_color),
+            )]),
+        ];
+
+        let text = Text::from(spans);
+        let paragraph = Paragraph::new(text)
+            .block(block)
+            .wrap(Wrap { trim: false })
+            .alignment(Alignment::Left);
+        let buttons = Paragraph::new(Line::from(vec![
+            Span::styled(button_titles.0, button_styles.0),
+            Span::styled(button_titles.1, button_styles.1),
         ]))
         .alignment(Alignment::Center);
 
-        frame.render_widget(block, dialog_area);
-        frame.render_widget(label_src, layout[0]);
-        frame.render_widget(label_src_path, layout[1]);
-        frame.render_widget(label_dest, layout[2]);
-        frame.render_widget(label_dest_path, layout[3]);
-        frame.render_widget(buttons, layout[4]);
+        frame.render_widget(paragraph, area);
+        frame.render_widget(buttons, layout[4])
+    }
+}
+
+/// UI component for displaying a confirmation dialog for file moving operations.
+/// It is based on the TransferConfirmationDialog.
+///
+/// Key controls:
+/// * F5: display/hide this dialog
+/// * Tab | Left Arrow | Right Arrow: switch between the currently selected button
+/// * Esc: Hides this dialog
+/// * Enter: Activate currently selected button
+#[derive(MockComponent)]
+pub struct CopyConfirmationDialog {
+    component: TransferConfirmationDialog,
+}
+
+impl Default for CopyConfirmationDialog {
+    fn default() -> Self {
+        let component = TransferConfirmationDialog::default();
+        let dialog = CopyConfirmationDialog { component };
+        dialog.title("Copy")
+    }
+}
+
+impl CopyConfirmationDialog {
+    /// Creates a new `CopyConfirmationDialog` with default properties.
+    /// See `CopyConfirmationDialog::default()`.
+    pub fn new() -> Self {
+        CopyConfirmationDialog::default()
     }
 
-    fn show_transfer_progress(
-        &self,
-        frame: &mut Frame<TermionBackend<RawTerminal<Stdout>>>,
-        area: Rect,
-    ) {
-        let (total_percent, partial_percent) = match &self.copy_progress {
-            TransferProgress::DirTransfer(dir_progress) => (
-                calculate_progress_percentage(dir_progress.copied_bytes, dir_progress.total_bytes),
-                calculate_progress_percentage(
-                    dir_progress.file_bytes_copied,
-                    dir_progress.file_total_bytes,
-                ),
-            ),
-            TransferProgress::FileTransfer(file_progress) => (
-                0,
-                calculate_progress_percentage(
-                    file_progress.copied_bytes,
-                    file_progress.total_bytes,
-                ),
-            ),
-            TransferProgress::None => (0, 0),
-        };
-        let file_name = match &self.copy_progress {
-            TransferProgress::DirTransfer(dir_progress) => dir_progress.file_name.clone(),
-            TransferProgress::FileTransfer(_) => self.source.display().to_string(),
-            TransferProgress::None => String::new(),
-        };
-        let (copied_bytes, total_bytes) = match &self.copy_progress {
-            TransferProgress::DirTransfer(dir_progress) => {
-                (dir_progress.file_bytes_copied, dir_progress.total_bytes)
-            }
-            TransferProgress::FileTransfer(file_progress) => {
-                (file_progress.copied_bytes, file_progress.total_bytes)
-            }
-            TransferProgress::None => (0, 0),
-        };
-        let dialog_area = Rect::new(area.x, area.y, area.width, area.height);
-        let layout = Layout::default()
-            .constraints([
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-                Constraint::Length(1),
-            ])
-            .margin(1)
-            .split(area);
-
-        let block = Block::default()
-            .border_type(tui::widgets::BorderType::Rounded)
-            .borders(Borders::ALL);
-
-        let current_file_label = Paragraph::new(Span::styled(
-            format!("Current: {}", file_name),
-            Style::default().fg(Color::White),
-        ));
-        let dest_filename = self.destination.display().to_string();
-        let dest_label = Paragraph::new(Span::styled(
-            format!("To: {}", dest_filename),
-            Style::default().fg(Color::White),
-        ));
-
-        let progress_total = Gauge::default()
-            .percent(total_percent as u16)
-            .gauge_style(Style::default().fg(Color::LightBlue));
-        let progress_partial = Gauge::default()
-            .percent(partial_percent as u16)
-            .gauge_style(Style::default().fg(Color::LightBlue));
-        let label_remaining_size = Paragraph::new(Span::styled(
-            format!(
-                "{}/{}",
-                SizeFormatter::new(copied_bytes, DECIMAL),
-                SizeFormatter::new(total_bytes, DECIMAL)
-            ),
-            Style::default().fg(Color::White),
-        ))
-        .alignment(Alignment::Left);
-
-        let secs = self.start_time.elapsed().as_secs() % 60;
-        let mins = (self.start_time.elapsed().as_secs() / 60) % 60;
-        let hours = (self.start_time.elapsed().as_secs() / 60) / 60;
-        let label_total_time = Paragraph::new(Span::styled(
-            format!("{}h:{}m:{}s", hours, mins, secs),
-            Style::default().fg(Color::White),
-        ))
-        .alignment(Alignment::Center);
-
-        let label_filesizes = Paragraph::new(Span::styled(
-            format!(
-                "{}/{}",
-                SizeFormatter::new(copied_bytes, DECIMAL),
-                SizeFormatter::new(total_bytes, DECIMAL)
-            ),
-            Style::default().fg(Color::White),
-        ))
-        .alignment(Alignment::Right);
-
-        let pause_button = Span::styled("[ ] Pause ", Style::default().fg(Color::White));
-        let cancel_button = Span::styled("[ ] Cancel ", Style::default().fg(Color::White));
-        let background_button = Span::styled("[ ] Background", Style::default().fg(Color::White));
-        let buttons = Paragraph::new(Text::from(Spans::from(vec![
-            pause_button,
-            cancel_button,
-            background_button,
-        ])))
-        .alignment(Alignment::Center);
-
-        frame.render_widget(block, dialog_area);
-        frame.render_widget(current_file_label, layout[0]);
-        frame.render_widget(dest_label, layout[1]);
-        frame.render_widget(progress_total, layout[2]);
-        frame.render_widget(progress_partial, layout[3]);
-        frame.render_widget(label_remaining_size, layout[4]);
-        frame.render_widget(label_total_time, layout[4]);
-        frame.render_widget(label_filesizes, layout[4]);
-        frame.render_widget(buttons, layout[5]);
+    /// Sets the source path to be displayed.
+    pub fn source<P: AsRef<Path>>(mut self, source: P) -> Self {
+        let source = source.as_ref().to_string_lossy().to_string();
+        self.component
+            .properties
+            .set(Attribute::Custom(TAG_SOURCE), AttrValue::String(source));
+        self
     }
 
-    pub(crate) fn should_quit(&self) -> bool {
-        self.should_quit
+    /// Sets the target path to be displayed.
+    pub fn target<P: AsRef<Path>>(mut self, target: P) -> Self {
+        let target = target.as_ref().to_string_lossy().to_string();
+        self.component
+            .properties
+            .set(Attribute::Custom(TAG_TARGET), AttrValue::String(target));
+        self
+    }
+
+    /// Sets the title of the dialog to be displayed in the top center of the dialog's border.
+    pub fn title<S: AsRef<str>>(mut self, title: S) -> Self {
+        let title = title.as_ref().to_string();
+        self.component.properties.set(
+            Attribute::Title,
+            AttrValue::Title((title, Alignment::Center)),
+        );
+        self
+    }
+}
+
+impl Component<ApplicationMessage, NoUserEvent> for CopyConfirmationDialog {
+    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+        match event {
+            Event::Keyboard(KeyEvent { code: Key::Esc, .. })
+            | Event::Keyboard(KeyEvent {
+                code: Key::Function(5),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog)),
+            Event::Keyboard(KeyEvent { code: Key::Tab, .. })
+            | Event::Keyboard(KeyEvent {
+                code: Key::Left, ..
+            })
+            | Event::Keyboard(KeyEvent {
+                code: Key::Right, ..
+            }) => {
+                self.component.focused_button.next();
+            }
+            Event::Keyboard(KeyEvent {
+                code: Key::Enter, ..
+            }) => match self.component.focused_button {
+                Buttons::Ok => {
+                    return Some(ApplicationMessage::Dialog(DialogMessage::BeginTransfer(
+                        true,
+                    )))
+                }
+                Buttons::Cancel => {
+                    return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))
+                }
+            },
+            _ => {}
+        }
+        None
     }
 }
