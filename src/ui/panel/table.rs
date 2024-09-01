@@ -96,6 +96,14 @@ impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
                 ..
             }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowHelpDialog)),
             Event::Keyboard(KeyEvent {
+                code: Key::Function(5),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowCopyDialog)),
+            Event::Keyboard(KeyEvent {
+                code: Key::Function(6),
+                ..
+            }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowMoveDialog)),
+            Event::Keyboard(KeyEvent {
                 code: Key::Function(7),
                 ..
             }) => return Some(ApplicationMessage::Dialog(DialogMessage::ShowMkDirDialog)),
