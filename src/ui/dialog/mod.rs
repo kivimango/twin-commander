@@ -12,7 +12,7 @@ mod menu;
 mod mkdir;
 //mod mv;
 mod rm;
-//mod transfer;
+mod transfer;
 
 //pub use self::cp::*;
 pub use self::help::*;
@@ -20,13 +20,16 @@ pub use self::menu::*;
 pub use self::mkdir::*;
 //pub use self::mv::*;
 pub use self::rm::*;
-//pub use self::transfer::*;
+pub use self::transfer::*;
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum DialogMessage {
     CloseDialog,
+    BeginTransfer(bool),
     CreateDirectory(State),
     ShowHelpDialog,
+    ShowMoveDialog,
+    ShowCopyDialog,
     ShowMkDirDialog,
     ShowRmDialog,
     ShowFilterDialog,
