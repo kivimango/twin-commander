@@ -89,6 +89,22 @@ impl ApplicationModel {
         &self.config
     }
 
+    /// Returns both panel's current working directories.
+    /// Variant 0 will be the currently focused panel's working directory.
+    fn get_pwds(&self) -> (PathBuf, PathBuf) {
+        match self.active_panel {
+            LEFT_PANEL_IDX => (
+                self.panel_states[0].pwd().to_path_buf(),
+                self.panel_states[1].pwd().to_path_buf(),
+            ),
+            RIGHT_PANEL_IDX => (
+                self.panel_states[1].pwd().to_path_buf(),
+                self.panel_states[0].pwd().to_path_buf(),
+            ),
+            _ => !unreachable!(),
+        }
+    }
+
     /// Initializes the left and right panels by reading their distinct configuration.
     /// Must be called after `self.mount_views()`.
     fn init_panels(&mut self) {
@@ -483,8 +499,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowMoveDialog => {
-                        let source = self.panel_states[0].pwd();
-                        let target = self.panel_states[1].pwd();
+                        let (source, target) = self.get_pwds();
                         let move_dialog = TransferConfirmationDialog::default()
                             .source(source)
                             .target(target)
@@ -501,8 +516,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowCopyDialog => {
-                        let source = self.panel_states[0].pwd();
-                        let target = self.panel_states[1].pwd();
+                        let (source, target) = self.get_pwds();
                         let copy_dialog = TransferConfirmationDialog::default()
                             .source(source)
                             .target(target)
