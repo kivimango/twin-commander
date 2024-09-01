@@ -10,6 +10,7 @@ use tuirealm::{
         widgets::{Block, Paragraph, Wrap},
     },
     AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
+    StateValue,
 };
 
 use super::DialogMessage;
@@ -33,10 +34,66 @@ impl Buttons {
 }
 
 /// A base UI component for displaying confirmation dialog for file moving operations.
-/// It displays a source directory, a target directory and two buttons, to accept (Ok) or cancel the operation.
-struct TransferConfirmationDialog {
+/// It displays the path of the source directory, the path of the target directory and two buttons,
+/// to accept (Ok) or cancel the operation.
+/// It is used both for Copy and Move dialog.
+///
+/// # Example 1
+/// ```rust
+/// let copy_dialog = TransferConfirmationDialog::default()
+///     .source("/")
+///     .target("/root/")
+///     .keep_source(true)
+///     .title("Confirm copy");
+/// ```
+///
+/// # Example 2
+/// ```rust
+/// let move_dialog = TransferConfirmationDialog::default()
+///     .source("/home/brad/.config/")
+///     .target("/home/rebecca/")
+///     .keep_source(false)
+///     .title("Confirm move");
+/// ```
+
+pub struct TransferConfirmationDialog {
     focused_button: Buttons,
+    keep_source: bool,
     properties: Props,
+}
+
+impl TransferConfirmationDialog {
+    /// Sets the flag indicating that the operation should preserve the source file(s) after completing,
+    /// i.e: differentiating between move and copy operations.
+    pub fn keep_source(mut self, keep: bool) -> Self {
+        self.keep_source = keep;
+        self
+    }
+    /// Sets the source path to be displayed.
+    pub fn source<P: AsRef<Path>>(mut self, source: P) -> Self {
+        let source = source.as_ref().to_string_lossy().to_string();
+        self.properties
+            .set(Attribute::Custom(TAG_SOURCE), AttrValue::String(source));
+        self
+    }
+
+    /// Sets the target path to be displayed.
+    pub fn target<P: AsRef<Path>>(mut self, target: P) -> Self {
+        let target = target.as_ref().to_string_lossy().to_string();
+        self.properties
+            .set(Attribute::Custom(TAG_TARGET), AttrValue::String(target));
+        self
+    }
+
+    /// Sets the title of the dialog to be displayed in the top center of the dialog's border.
+    pub fn title<S: AsRef<str>>(mut self, title: S) -> Self {
+        let title = title.as_ref().to_string();
+        self.properties.set(
+            Attribute::Title,
+            AttrValue::Title((title, Alignment::Center)),
+        );
+        self
+    }
 }
 
 impl Default for TransferConfirmationDialog {
@@ -49,6 +106,7 @@ impl Default for TransferConfirmationDialog {
 
         TransferConfirmationDialog {
             focused_button: Buttons::Cancel,
+            keep_source: true,
             properties: Props::default(),
         }
     }
@@ -68,7 +126,7 @@ impl MockComponent for TransferConfirmationDialog {
     }
 
     fn state(&self) -> State {
-        State::None
+        State::One(StateValue::Bool(self.keep_source))
     }
 
     fn view(&mut self, frame: &mut Frame, area: Rect) {
@@ -187,64 +245,7 @@ impl MockComponent for TransferConfirmationDialog {
     }
 }
 
-/// UI component for displaying a confirmation dialog for file moving operations.
-/// It is based on the TransferConfirmationDialog.
-///
-/// Key controls:
-/// * F5: display/hide this dialog
-/// * Tab | Left Arrow | Right Arrow: switch between the currently selected button
-/// * Esc: Hides this dialog
-/// * Enter: Activate currently selected button
-#[derive(MockComponent)]
-pub struct CopyConfirmationDialog {
-    component: TransferConfirmationDialog,
-}
-
-impl Default for CopyConfirmationDialog {
-    fn default() -> Self {
-        let component = TransferConfirmationDialog::default();
-        let dialog = CopyConfirmationDialog { component };
-        dialog.title("Copy")
-    }
-}
-
-impl CopyConfirmationDialog {
-    /// Creates a new `CopyConfirmationDialog` with default properties.
-    /// See `CopyConfirmationDialog::default()`.
-    pub fn new() -> Self {
-        CopyConfirmationDialog::default()
-    }
-
-    /// Sets the source path to be displayed.
-    pub fn source<P: AsRef<Path>>(mut self, source: P) -> Self {
-        let source = source.as_ref().to_string_lossy().to_string();
-        self.component
-            .properties
-            .set(Attribute::Custom(TAG_SOURCE), AttrValue::String(source));
-        self
-    }
-
-    /// Sets the target path to be displayed.
-    pub fn target<P: AsRef<Path>>(mut self, target: P) -> Self {
-        let target = target.as_ref().to_string_lossy().to_string();
-        self.component
-            .properties
-            .set(Attribute::Custom(TAG_TARGET), AttrValue::String(target));
-        self
-    }
-
-    /// Sets the title of the dialog to be displayed in the top center of the dialog's border.
-    pub fn title<S: AsRef<str>>(mut self, title: S) -> Self {
-        let title = title.as_ref().to_string();
-        self.component.properties.set(
-            Attribute::Title,
-            AttrValue::Title((title, Alignment::Center)),
-        );
-        self
-    }
-}
-
-impl Component<ApplicationMessage, NoUserEvent> for CopyConfirmationDialog {
+impl Component<ApplicationMessage, NoUserEvent> for TransferConfirmationDialog {
     fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. })
@@ -259,14 +260,14 @@ impl Component<ApplicationMessage, NoUserEvent> for CopyConfirmationDialog {
             | Event::Keyboard(KeyEvent {
                 code: Key::Right, ..
             }) => {
-                self.component.focused_button.next();
+                self.focused_button.next();
             }
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
-            }) => match self.component.focused_button {
+            }) => match self.focused_button {
                 Buttons::Ok => {
                     return Some(ApplicationMessage::Dialog(DialogMessage::BeginTransfer(
-                        true,
+                        self.keep_source,
                     )))
                 }
                 Buttons::Cancel => {
