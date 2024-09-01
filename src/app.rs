@@ -2,9 +2,8 @@ use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::ui::{
-    fixed_height_centered_rect, CopyConfirmationDialog, Dialog, DialogMessage, HelpDialog,
-    MkDirDialog, PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog,
-    TablePanel,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
+    PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel, TransferConfirmationDialog,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -484,21 +483,31 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowMoveDialog => {
-                        /*let transfer_dialog = Box::new(CopyConfirmationDialog::new());
+                        let source = self.panel_states[0].pwd();
+                        let target = self.panel_states[1].pwd();
+                        let move_dialog = TransferConfirmationDialog::default()
+                            .source(source)
+                            .target(target)
+                            .keep_source(false)
+                            .title("Move");
+                        let move_dialog = Box::new(move_dialog);
                         self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 14, self.area),
+                            area: fixed_height_centered_rect(50, 8, self.area),
                         });
                         self.app
-                            .mount(UserInterfaces::Dialog, transfer_dialog, vec![])
+                            .mount(UserInterfaces::Dialog, move_dialog, vec![])
                             .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();*/
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowCopyDialog => {
                         let source = self.panel_states[0].pwd();
                         let target = self.panel_states[1].pwd();
-                        let copy_dialog =
-                            CopyConfirmationDialog::new().source(source).target(target);
+                        let copy_dialog = TransferConfirmationDialog::default()
+                            .source(source)
+                            .target(target)
+                            .keep_source(true)
+                            .title("Copy");
                         let copy_dialog = Box::new(copy_dialog);
                         self.dialog = Some(Dialog {
                             area: fixed_height_centered_rect(50, 8, self.area),
