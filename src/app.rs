@@ -2,7 +2,9 @@ use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel
+    fixed_height_centered_rect, CopyConfirmationDialog, Dialog, DialogMessage, HelpDialog,
+    MkDirDialog, PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog,
+    TablePanel,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -481,6 +483,32 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
+                    DialogMessage::ShowMoveDialog => {
+                        /*let transfer_dialog = Box::new(CopyConfirmationDialog::new());
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 14, self.area),
+                        });
+                        self.app
+                            .mount(UserInterfaces::Dialog, transfer_dialog, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();*/
+                        Some(ApplicationMessage::None)
+                    }
+                    DialogMessage::ShowCopyDialog => {
+                        let source = self.panel_states[0].pwd();
+                        let target = self.panel_states[1].pwd();
+                        let copy_dialog =
+                            CopyConfirmationDialog::new().source(source).target(target);
+                        let copy_dialog = Box::new(copy_dialog);
+                        self.dialog = Some(Dialog {
+                            area: fixed_height_centered_rect(50, 8, self.area),
+                        });
+                        self.app
+                            .mount(UserInterfaces::Dialog, copy_dialog, vec![])
+                            .unwrap();
+                        self.app.active(&UserInterfaces::Dialog).unwrap();
+                        Some(ApplicationMessage::None)
+                    }
                     DialogMessage::ShowMkDirDialog => {
                         let dialog = MkDirDialog::new();
                         let mkdir_dialog = Box::new(dialog);
@@ -529,6 +557,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
+                    DialogMessage::BeginTransfer(_delete_source) => Some(ApplicationMessage::None),
                     DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
                         let mut current_dir =
