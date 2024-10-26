@@ -4,6 +4,7 @@ use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
     PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel, TransferConfirmationDialog,
+    TransferProgressDialog,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -18,8 +19,8 @@ use tuirealm::terminal::TerminalBridge;
 use tuirealm::tui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::tui::widgets::Clear;
 use tuirealm::{
-    Application, AttrValue, Attribute, EventListenerCfg, NoUserEvent, PollStrategy, State,
-    StateValue, Sub, SubClause, SubEventClause, Update,
+    Application, AttrValue, Attribute, EventListenerCfg, MockComponent, NoUserEvent, PollStrategy,
+    State, StateValue, Sub, SubClause, SubEventClause, Update,
 };
 
 type TuiRealmApplication = Application<UserInterfaces, ApplicationMessage, NoUserEvent>;
@@ -580,7 +581,28 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         self.app.active(&UserInterfaces::Dialog).unwrap();
                         Some(ApplicationMessage::None)
                     }
-                    DialogMessage::BeginTransfer(_delete_source) => Some(ApplicationMessage::None),
+                    DialogMessage::BeginTransfer(_delete_source) => {
+                        if self.app.mounted(&UserInterfaces::Dialog) {
+                            self.app.umount(&UserInterfaces::Dialog).unwrap();
+                            let (source, target) = self.get_pwds();
+                            let mut dialog = TransferProgressDialog::new()
+                                .source(source)
+                                .target(target)
+                                .title("Copying");
+                            dialog
+                                .attr(Attribute::Content, AttrValue::String(String::from("x.txt")));
+                            let progress_dialog = Box::new(dialog);
+                            self.dialog = Some(Dialog {
+                                area: fixed_height_centered_rect(50, 9, self.area),
+                            });
+                            self.app
+                                .mount(UserInterfaces::Dialog, progress_dialog, vec![])
+                                .unwrap();
+                            self.app.active(&UserInterfaces::Dialog).unwrap();
+                        }
+
+                        Some(ApplicationMessage::None)
+                    }
                     DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
                     DialogMessage::CreateDirectory(state) => {
                         let mut current_dir =
