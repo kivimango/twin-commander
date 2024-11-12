@@ -1,5 +1,6 @@
 use crate::core::list_dir::{list_dir, DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate, TableSorter};
+use std::collections::HashSet;
 use std::io;
 use std::path::{Path, PathBuf};
 
@@ -37,6 +38,9 @@ pub struct PanelState {
 
     /// Filters used to customize the file listing operation
     filters: FilterOptions,
+
+    /// Keeps track of the selected file indices
+    selected_indices: HashSet<usize>,
 
     /// Sort files and keep track of order and predicate
     sorter: TableSorter,
@@ -133,6 +137,12 @@ impl PanelState {
         header_cells(self.sorter.get_predicate(), self.sorter.get_direction())
     }
 
+    /// Checks wether the file is marked as selected at `index`.
+    /// Returns true if selected.
+    pub fn is_selected(&self, index: usize) -> bool {
+        self.selected_indices.contains(&index)
+    }
+
     /// List files in a directory at `path` applying the search filters set in `self.filters`.
     pub fn list_files<P: AsRef<Path>>(&self, path: P) -> Result<Vec<DirContent>, io::Error> {
         list_dir(path.as_ref(), &self.filters)
@@ -158,6 +168,23 @@ impl PanelState {
     /// Returns the current working directory converted to a String.
     pub fn pwd(&self) -> &PathBuf {
         &self.cwd
+    }
+
+    /// Unselects all previously selected files
+    pub fn reset_selection(&mut self) {
+        self.selected_indices.clear()
+    }
+
+    /// Marks a file at `index` as selected.
+    /// If the file is already markes as selected,
+    /// it will reverse the selection.
+    pub fn select(&mut self, index: usize) {
+        if self.selected_indices.contains(&index) {
+            self.selected_indices.remove(&index);
+            return;
+        }
+
+        self.selected_indices.insert(index);
     }
 
     /// Sets the current working directory to `path`.
@@ -203,6 +230,11 @@ impl PanelState {
     pub fn sort_predicate(&self) -> TableSortPredicate {
         self.sorter.get_predicate()
     }
+
+    /// Removes selection from a file at `index`
+    pub fn unselect(&mut self, index: usize) {
+        self.selected_indices.remove(&index);
+    }
 }
 
 impl Default for PanelState {
@@ -211,6 +243,7 @@ impl Default for PanelState {
             cwd: PathBuf::from("/"),
             files: vec![],
             filters: FilterOptions::default(),
+            selected_indices: HashSet::new(),
             sorter: TableSorter::new(TableSortDirection::default(), TableSortPredicate::default()),
         }
     }
