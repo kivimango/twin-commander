@@ -42,7 +42,10 @@ fn select_item(
         State::One(StateValue::Usize(cursor_pos)) => {
             let count = panel_state.files().len();
 
+            // Possible crash: if the file count is 0, but there is always a parent dir at index 0 except when the user is at the root folder,
+            // and it has no directories, which is unlikely
             if cursor_pos < count - 1 {
+                panel_state.select(cursor_pos);
                 let new_cursor_pos = cursor_pos + 1;
                 let new_value =
                     AttrValue::Payload(PropPayload::One(PropValue::Usize(new_cursor_pos)));
