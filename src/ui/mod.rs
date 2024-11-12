@@ -8,6 +8,7 @@ mod bottom_menu;
 mod dialog;
 mod menu;
 mod panel;
+mod panel_item;
 mod panel_state;
 mod table;
 //mod user_interface;
@@ -30,6 +31,7 @@ pub enum PanelMessage {
     ChangeDirectory(State),
     ChangeSortPredicate(TableSortPredicate),
     GoBackUp,
+    SelectItem,
     SwitchPanel,
 }
 
