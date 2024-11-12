@@ -187,6 +187,10 @@ impl PanelState {
         self.selected_indices.insert(index);
     }
 
+    pub fn selected_files_count(&self) -> usize {
+        self.selected_indices.len()
+    }
+
     /// Sets the current working directory to `path`.
     pub fn set_current_path<P: AsRef<Path>>(&mut self, path: P) {
         self.cwd = PathBuf::from(path.as_ref())
