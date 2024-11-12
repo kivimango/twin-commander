@@ -5,6 +5,7 @@ use tuirealm::terminal::TerminalBridge;
 
 mod app;
 mod core;
+mod handlers;
 mod ui;
 
 fn main() -> Result<(), Box<dyn Error>> {
