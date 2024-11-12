@@ -62,6 +62,12 @@ impl RemoveConfirmationDialog {
             properties: Props::default(),
         }
     }
+
+    pub fn with_count(mut self, file_count: usize) -> Self {
+        let value = AttrValue::Length(file_count);
+        self.attr(Attribute::Value, value);
+        self
+    }
 }
 
 impl MockComponent for RemoveConfirmationDialog {
@@ -105,11 +111,18 @@ impl MockComponent for RemoveConfirmationDialog {
                 AttrValue::Title(("Confirm delete".to_string(), Alignment::Left)),
             )
             .unwrap_title();
+        let file_count = self
+            .properties
+            .get_or(Attribute::Value, AttrValue::Length(0))
+            .unwrap_length();
         let text = self
             .properties
             .get_or(
                 Attribute::HighlightedStr,
-                AttrValue::String(String::from("Are you sure you want to delete this?")),
+                AttrValue::String(format!(
+                    "Are you sure you want to delete {} item(s)?",
+                    file_count
+                )),
             )
             .unwrap_string();
 
@@ -169,9 +182,7 @@ impl Component<ApplicationMessage, NoUserEvent> for RemoveConfirmationDialog {
             Event::Keyboard(KeyEvent {
                 code: Key::Function(10),
                 ..
-            }) => {
-                Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))
-            }
+            }) => Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog)),
             Event::Keyboard(KeyEvent {
                 code: Key::Enter, ..
             }) => {
