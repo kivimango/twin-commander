@@ -7,6 +7,7 @@ use tuirealm::tui::layout::Rect;
 use tuirealm::State;
 
 //mod cp;
+mod error;
 mod help;
 mod menu;
 mod mkdir;
@@ -15,6 +16,7 @@ mod rm;
 mod transfer;
 
 //pub use self::cp::*;
+pub use self::error::*;
 pub use self::help::*;
 pub use self::menu::*;
 pub use self::mkdir::*;
