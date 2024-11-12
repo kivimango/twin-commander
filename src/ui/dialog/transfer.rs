@@ -491,8 +491,8 @@ impl MockComponent for TransferProgressDialog {
         let label_filesizes = Paragraph::new(Span::styled(
             format!(
                 "{}/{}",
-                SizeFormatter::new(copied_bytes, DECIMAL),
-                SizeFormatter::new(total_bytes, DECIMAL)
+                SizeFormatter::new(0u16, DECIMAL), //copied_bytes
+                SizeFormatter::new(0u16, DECIMAL)  //total_bytes
             ),
             Style::default().fg(Color::White),
         ))
@@ -509,8 +509,8 @@ impl MockComponent for TransferProgressDialog {
         .alignment(Alignment::Center);
 
         frame.render_widget(block, dialog_area);
-        frame.render_widget(current_file_label, layout[0]);
-        frame.render_widget(dest_label, layout[1]);
+        //frame.render_widget(current_file_label, layout[0]);
+        //frame.render_widget(dest_label, layout[1]);
         frame.render_widget(progress_total, layout[2]);
         frame.render_widget(progress_partial, layout[3]);
         frame.render_widget(label_remaining_size, layout[4]);
