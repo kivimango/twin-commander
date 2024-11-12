@@ -3,9 +3,9 @@ use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
 use crate::handlers::PanelMessageHandler;
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
-    PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel, TransferConfirmationDialog,
-    TransferProgressDialog, CLEAR_SELECTION,
+    fixed_height_centered_rect, Dialog, DialogMessage, ErrorDialog, HelpDialog, MkDirDialog,
+    PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel,
+    TransferConfirmationDialog, TransferProgressDialog, CLEAR_SELECTION,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -570,15 +570,34 @@ impl Update<ApplicationMessage> for ApplicationModel {
                     DialogMessage::ShowRmDialog => {
                         let file_count =
                             self.panel_states[self.active_panel].selected_files_count();
-                        let rm_dialog =
-                            Box::new(RemoveConfirmationDialog::new().with_count(file_count));
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 5, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, rm_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
+
+                        if file_count == 0 {
+                            let error_dialog = Box::new(
+                                ErrorDialog::new()
+                                    .with_title("Error")
+                                    .with_message("There are no files selected!")
+                                    .with_button_title("   OK   "),
+                            );
+
+                            self.dialog = Some(Dialog {
+                                area: fixed_height_centered_rect(33, 5, self.area),
+                            });
+                            self.app
+                                .mount(UserInterfaces::Dialog, error_dialog, vec![])
+                                .unwrap();
+                            self.app.active(&UserInterfaces::Dialog).unwrap();
+                        } else {
+                            let rm_dialog =
+                                Box::new(RemoveConfirmationDialog::new().with_count(file_count));
+                            self.dialog = Some(Dialog {
+                                area: fixed_height_centered_rect(50, 5, self.area),
+                            });
+                            self.app
+                                .mount(UserInterfaces::Dialog, rm_dialog, vec![])
+                                .unwrap();
+                            self.app.active(&UserInterfaces::Dialog).unwrap();
+                        }
+
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowSortDialog => {
