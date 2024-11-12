@@ -1,10 +1,11 @@
 use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
+use crate::handlers::PanelMessageHandler;
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
     PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel, TransferConfirmationDialog,
-    TransferProgressDialog,
+    TransferProgressDialog, CLEAR_SELECTION,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -23,7 +24,7 @@ use tuirealm::{
     State, StateValue, Sub, SubClause, SubEventClause, Update,
 };
 
-type TuiRealmApplication = Application<UserInterfaces, ApplicationMessage, NoUserEvent>;
+pub type TuiRealmApplication = Application<UserInterfaces, ApplicationMessage, NoUserEvent>;
 
 const LEFT_PANEL_IDX: usize = 0;
 const RIGHT_PANEL_IDX: usize = 1;
@@ -68,6 +69,7 @@ pub struct ApplicationModel {
     dialog: Option<Dialog>,
     should_quit: bool,
     redraw: bool,
+    panel_handler: PanelMessageHandler,
     panel_states: [PanelState; 2],
 }
 
@@ -81,6 +83,7 @@ impl ApplicationModel {
             dialog: None,
             should_quit: false,
             redraw: true,
+            panel_handler: PanelMessageHandler::new(),
             panel_states: [PanelState::new(), PanelState::new()],
         }
     }
@@ -227,6 +230,12 @@ impl ApplicationModel {
         self.app
             .active(&UserInterfaces::LeftPanel)
             .expect("Failed to activate bottom menu component!");
+
+        self.app
+            .state(&UserInterfaces::LeftPanel)
+            .unwrap()
+            .unwrap_one()
+            .unwrap_usize();
     }
 
     // Runs the main event loop for the application, handling user input and updating the user interface accordingly.
@@ -307,6 +316,19 @@ impl ApplicationModel {
         }) {
             eprint!("Error during drawing frame: {error}");
         }
+    }
+
+    fn clear_selection(
+        &mut self,
+        component: &UserInterfaces,
+        panel_idx: usize,
+    ) -> ApplicationResult<()> {
+        self.panel_states[panel_idx].reset_selection();
+        self.app.attr(
+            component,
+            Attribute::Custom(CLEAR_SELECTION),
+            AttrValue::Flag(true),
+        )
     }
 
     fn select_file(&mut self, component: &UserInterfaces, idx: usize) -> ApplicationResult<()> {
@@ -677,6 +699,8 @@ impl Update<ApplicationMessage> for ApplicationModel {
                                                     .to_string(),
                                             )
                                             .unwrap();
+                                            self.clear_selection(&component_id, active_panel)
+                                                .unwrap();
 
                                             if index == 0 {
                                                 self.select_parent_or_first(
@@ -718,6 +742,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                                                 .to_string(),
                                         )
                                         .unwrap();
+                                        self.clear_selection(&component_id, active_panel).unwrap();
                                         self.select_parent_or_first(
                                             &component_id,
                                             active_panel,
@@ -729,6 +754,23 @@ impl Update<ApplicationMessage> for ApplicationModel {
                             }
                         }
                         Some(ApplicationMessage::None)
+                    }
+                    PanelMessage::SelectItem => {
+                        let focused_panel = self.app.focus().cloned();
+                        if let Some(active_panel) = focused_panel {
+                            if active_panel.eq(&UserInterfaces::LeftPanel)
+                                || active_panel.eq(&UserInterfaces::RightPanel)
+                            {
+                                self.panel_handler.handle_msg(
+                                    &mut self.app,
+                                    &mut self.panel_states[self.active_panel],
+                                    &active_panel,
+                                    &panel_msg,
+                                );
+                            }
+                        }
+
+                        return Some(ApplicationMessage::None);
                     }
                     PanelMessage::SwitchPanel => {
                         match self.active_panel {
