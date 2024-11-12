@@ -568,7 +568,10 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowRmDialog => {
-                        let rm_dialog = Box::new(RemoveConfirmationDialog::new());
+                        let file_count =
+                            self.panel_states[self.active_panel].selected_files_count();
+                        let rm_dialog =
+                            Box::new(RemoveConfirmationDialog::new().with_count(file_count));
                         self.dialog = Some(Dialog {
                             area: fixed_height_centered_rect(50, 5, self.area),
                         });
