@@ -369,18 +369,24 @@ impl MockComponent for TablePanel {
             .get_or(Attribute::Focus, AttrValue::Flag(false))
             .unwrap_flag();
 
-        let focused_style = if focused {
-            self.properties
-                .get_or(Attribute::FocusStyle, AttrValue::Style(DEFAULT_FOCUS_STYLE))
-                .unwrap_style()
+        let (focused_style, title_style) = if focused {
+            (
+                self.properties
+                    .get_or(Attribute::FocusStyle, AttrValue::Style(DEFAULT_FOCUS_STYLE))
+                    .unwrap_style(),
+                Style::default().bg(Color::White).fg(Color::Black),
+            )
         } else {
-            Style::default().bg(background).fg(text_color)
+            (
+                Style::default().bg(background).fg(text_color),
+                Style::default().black(),
+            )
         };
 
         let header_titles: Vec<Cell> = headers
             .iter()
             .map(|value| match value {
-                PropValue::Str(header_str) => Cell::new(header_str.as_str()).yellow(),
+                PropValue::Str(header_str) => Cell::new(header_str.as_str()).light_yellow().bold(),
                 _ => Cell::new(""),
             })
             .collect();
@@ -412,6 +418,7 @@ impl MockComponent for TablePanel {
                     .borders(border.sides)
                     .title(title.0)
                     .title_alignment(title.1)
+                    .title_style(title_style)
                     .style(Style::default().fg(border.color)),
             )
             .bg(background)
