@@ -1,8 +1,9 @@
+use std::collections::HashSet;
+
 use crate::{
     app::ApplicationMessage,
     ui::{DialogMessage, PanelMessage, TableSortDirection, TableSortPredicate, TopMenuMessage},
 };
-use tuirealm::tui::style::Style;
 use tuirealm::{
     command::{Cmd, CmdResult, Direction, Position},
     event::{Key, KeyEvent},
@@ -14,6 +15,10 @@ use tuirealm::{
     },
     AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, Props, State, StateValue,
 };
+use tuirealm::{props::TextModifiers, tui::style::Style};
+
+pub const SELECT_ITEM: &str = "SELECT_ITEM";
+pub const CLEAR_SELECTION: &str = "CLEAR_ELECTION";
 
 const DEFAULT_BACKGROUND_COLOR: Color = Color::LightBlue;
 const DEFAULT_TEXT_COLOR: Color = Color::White;
@@ -35,6 +40,8 @@ pub struct TablePanel {
 
     /// The state keeps track of the selected item and an offset from 0.
     state: TableState,
+
+    selection: HashSet<usize>,
 }
 
 impl Default for TablePanel {
@@ -61,6 +68,7 @@ impl Default for TablePanel {
             count: 0,
             properties,
             state,
+            selection: HashSet::new(),
         }
     }
 }
@@ -88,6 +96,7 @@ impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
     /// - `Ctrl+s Key`: Changes sort predicate to size
     /// - `Ctrl+u Key`: Changes sort direction to ascending
     /// - `Ctrl+d Key`: Changes sort direction to descending
+    /// - `Insert Key`: Marks the file at the cursor as selected, and advances the cursor by one row
     fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
         let cmd = match event {
             // Bottom menu
@@ -183,6 +192,9 @@ impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
                     PanelMessage::ChangeSortDirection(TableSortDirection::Descending),
                 ))
             }
+            Event::Keyboard(KeyEvent {
+                code: Key::Insert, ..
+            }) => return Some(ApplicationMessage::Panel(PanelMessage::SelectItem)),
             _ => Cmd::None,
         };
 
@@ -226,6 +238,12 @@ impl MockComponent for TablePanel {
     ///
     /// - `Attribute::FocusStyle`: Sets the selected item's style
     ///   - Value: `AttrValue::Style(Style)`, the style of the selected item.If the table is not focused, it will be set to the background and text color.
+    ///
+    /// - `Attribute::Custom(CLEAR_SELECTION)`: Marks all previously selected items as unselected.
+    ///   - Value: `AttrValue::Flag(bool)`, currently the value is ignored.
+    ///
+    /// - `Attribute::Custom(SELECT_ITEM)`: Marks the item at the given index as selected.
+    ///   - Value: `AttrValue::Payload(Payload::Usize)`, the index of the file to be selected.
     fn attr(&mut self, attr: Attribute, value: AttrValue) {
         if matches!(attr, Attribute::Content) {
             // unwrapping the table attribute to query the row count in order to update it
@@ -236,7 +254,19 @@ impl MockComponent for TablePanel {
         } else if matches!(attr, Attribute::Value) {
             let selected_idx = value.clone().unwrap_payload().unwrap_one().unwrap_usize();
             self.state.select(Some(selected_idx));
+
             self.properties.set(attr, value);
+        } else if matches!(attr, Attribute::Custom(SELECT_ITEM)) {
+            let selected_idx = value.unwrap_payload().unwrap_one().unwrap_usize();
+
+            // selection / unselection
+            if self.selection.contains(&selected_idx) {
+                self.selection.remove(&selected_idx);
+            } else {
+                self.selection.insert(selected_idx);
+            }
+        } else if matches!(attr, Attribute::Custom(CLEAR_SELECTION)) {
+            self.selection.clear();
         } else {
             self.properties.set(attr, value)
         }
@@ -358,12 +388,21 @@ impl MockComponent for TablePanel {
 
         let rows: Vec<Row> = files
             .iter()
-            .map(|f| {
+            .enumerate()
+            .map(|(i, f)| {
+                let style = if self.selection.contains(&i) {
+                    Style::default()
+                        .fg(Color::LightYellow)
+                        .add_modifier(TextModifiers::BOLD)
+                } else {
+                    Style::default().fg(text_color)
+                };
                 Row::new([
-                    Cell::from(f[0].content.clone()).fg(text_color),
-                    Cell::from(f[1].content.clone()).fg(text_color),
-                    Cell::from(f[2].content.clone()).fg(text_color),
+                    Cell::from(f[0].content.clone()),
+                    Cell::from(f[1].content.clone()),
+                    Cell::from(f[2].content.clone()),
                 ])
+                .style(style)
             })
             .collect();
 
