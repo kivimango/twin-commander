@@ -9,9 +9,13 @@ use tuirealm::{
     event::{Key, KeyEvent},
     props::{Alignment, BorderSides, Borders, Color, PropValue},
     tui::{
-        layout::{Constraint, Rect},
+        layout::{Constraint, Margin, Rect},
         style::Stylize,
-        widgets::{Block, Cell, Row, Table, TableState},
+        symbols::scrollbar,
+        widgets::{
+            Block, Cell, Row, ScrollDirection, Scrollbar, ScrollbarOrientation, ScrollbarState,
+            Table, TableState,
+        },
     },
     AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, Props, State, StateValue,
 };
@@ -38,10 +42,14 @@ pub struct TablePanel {
     /// Additional properties and settings for the table panel.
     properties: Props,
 
-    /// The state keeps track of the selected item and an offset from 0.
+    /// The state keeps track of the cursor position and an offset from 0.
     state: TableState,
 
+    /// List of selected items
     selection: HashSet<usize>,
+
+    /// The state of the scrollbar kept between draw calls
+    srcoll_state: ScrollbarState,
 }
 
 impl Default for TablePanel {
@@ -69,6 +77,7 @@ impl Default for TablePanel {
             properties,
             state,
             selection: HashSet::new(),
+            srcoll_state: ScrollbarState::default(),
         }
     }
 }
@@ -250,11 +259,11 @@ impl MockComponent for TablePanel {
             let table = value.unwrap_table();
             let row_count = table.len();
             self.count = row_count;
+            self.srcoll_state = ScrollbarState::new(row_count);
             self.properties.set(attr, AttrValue::Table(table));
         } else if matches!(attr, Attribute::Value) {
             let selected_idx = value.clone().unwrap_payload().unwrap_one().unwrap_usize();
             self.state.select(Some(selected_idx));
-
             self.properties.set(attr, value);
         } else if matches!(attr, Attribute::Custom(SELECT_ITEM)) {
             let selected_idx = value.unwrap_payload().unwrap_one().unwrap_usize();
@@ -282,6 +291,7 @@ impl MockComponent for TablePanel {
                     }
                     // TODO: could panic if selected_idx == Usize:MAX
                     self.state.select(Some(selected_idx + 1));
+                    self.srcoll_state.scroll(ScrollDirection::Forward);
                     return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
@@ -293,6 +303,7 @@ impl MockComponent for TablePanel {
                     }
                     // TODO: could panic if selected_idx == 0
                     self.state.select(Some(selected_idx - 1));
+                    self.srcoll_state.scroll(ScrollDirection::Backward);
                     return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
@@ -300,6 +311,7 @@ impl MockComponent for TablePanel {
             Cmd::GoTo(Position::Begin) => {
                 if self.count != 0 {
                     self.state.select(Some(0));
+                    self.srcoll_state.first();
                     return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
@@ -307,6 +319,7 @@ impl MockComponent for TablePanel {
             Cmd::GoTo(Position::End) => {
                 if self.count != 0 {
                     self.state.select(Some(self.count - 1));
+                    self.srcoll_state.last();
                     return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
@@ -433,5 +446,16 @@ impl MockComponent for TablePanel {
             ]);
 
         frame.render_stateful_widget(table, area, &mut self.state);
+
+        let table_height = area.height - 2;
+        if self.count > table_height.into() {
+            let scroll_bar =
+                Scrollbar::new(ScrollbarOrientation::VerticalRight).symbols(scrollbar::VERTICAL);
+            let scroll_bar_area = area.inner(&Margin {
+                vertical: 1,
+                horizontal: 0,
+            });
+            frame.render_stateful_widget(scroll_bar, scroll_bar_area, &mut self.srcoll_state);
+        }
     }
 }
