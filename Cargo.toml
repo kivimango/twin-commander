@@ -13,20 +13,27 @@ version = "0.1.0"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-chrono = {version = "0.4.22", features = ["clock"], default-features = false}
+chrono = { version = "0.4.22", features = ["clock"], default-features = false }
 dirs = "4.0.0"
 # Not the best libary so far, but its do the job.Temporarily added for MVP completion.
 # After MVP released, roll your own, or fix its issues on a fork, see issues: https://github.com/webdesus/fs_extra/issues
 fs_extra = "1.2.0"
-humansize = {version = "2.1.3", features = ["no_alloc"], default-features = false}
-serde = {version = "1.0.152", features = ["derive"]}
+humansize = { version = "2.1.3", features = [
+    "no_alloc",
+], default-features = false }
+serde = { version = "1.0.152", features = ["derive"] }
 termion = "2.0.3"
 # For reading and writing config files
 toml = "0.7.2"
-tui = {version = "0.19", features = ["termion"], default-features = false}
-tui-input = {version = "0.8.0", features = ["termion"], default-features = false}
-tuirealm = { version = "^1.9.0", default-features = false, features = [ "derive", "ratatui", "termion" ] }
-tui-realm-stdlib = { version = "^1.3.2", default-features = false, features = ["ratatui", "termion" ] }
+tuirealm = { version = "^1.9.0", default-features = false, features = [
+    "derive",
+    "ratatui",
+    "termion",
+] }
+tui-realm-stdlib = { version = "^1.3.2", default-features = false, features = [
+    "ratatui",
+    "termion",
+] }
 walkdir = "2.3.2"
 
 [profile.release]
