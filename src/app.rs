@@ -1,7 +1,7 @@
 use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
-use crate::handlers::PanelMessageHandler;
+use crate::handlers::{DialogMessageHandler, PanelMessageHandler};
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, ErrorDialog, HelpDialog, MkDirDialog,
     PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel,
@@ -67,6 +67,7 @@ pub struct ApplicationModel {
     area: Rect,
     config: Configuration,
     dialog: Option<Dialog>,
+    dialog_handler: DialogMessageHandler,
     should_quit: bool,
     redraw: bool,
     panel_handler: PanelMessageHandler,
@@ -81,6 +82,7 @@ impl ApplicationModel {
             area: Rect::default(),
             config,
             dialog: None,
+            dialog_handler: DialogMessageHandler::new(),
             should_quit: false,
             redraw: true,
             panel_handler: PanelMessageHandler::new(),
