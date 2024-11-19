@@ -187,6 +187,14 @@ impl PanelState {
         self.selected_indices.insert(index);
     }
 
+    pub fn selected_files(&self) -> Vec<usize> {
+        let mut result = Vec::with_capacity(self.selected_indices.len());
+        for f in &self.selected_indices {
+            result.push(*f);
+        }
+        result
+    }
+
     pub fn selected_files_count(&self) -> usize {
         self.selected_indices.len()
     }
