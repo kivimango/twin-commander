@@ -1,11 +1,11 @@
 use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
-use crate::handlers::{DialogMessageHandler, PanelMessageHandler};
+use crate::handlers::{self, PanelMessageHandler};
 use crate::ui::{
-    fixed_height_centered_rect, Dialog, DialogMessage, ErrorDialog, HelpDialog, MkDirDialog,
-    PanelOpionsDialog, PanelState, RemoveConfirmationDialog, SortingDialog, TablePanel,
-    TransferConfirmationDialog, TransferProgressDialog, CLEAR_SELECTION,
+    fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
+    PanelState, SortingDialog, TablePanel, TransferConfirmationDialog, TransferProgressDialog,
+    CLEAR_SELECTION,
 };
 use crate::ui::{BottomMenu, PanelMessage, TopMenu, TopMenuMessage};
 use humansize::{SizeFormatter, DECIMAL};
@@ -20,8 +20,8 @@ use tuirealm::terminal::TerminalBridge;
 use tuirealm::tui::layout::{Constraint, Direction, Layout, Rect};
 use tuirealm::tui::widgets::Clear;
 use tuirealm::{
-    Application, AttrValue, Attribute, EventListenerCfg, MockComponent, NoUserEvent, PollStrategy,
-    State, StateValue, Sub, SubClause, SubEventClause, Update,
+    Application, AttrValue, Attribute, Component, EventListenerCfg, MockComponent, NoUserEvent,
+    PollStrategy, State, StateValue, Sub, SubClause, SubEventClause, Update,
 };
 
 pub type TuiRealmApplication = Application<UserInterfaces, ApplicationMessage, NoUserEvent>;
@@ -67,7 +67,6 @@ pub struct ApplicationModel {
     area: Rect,
     config: Configuration,
     dialog: Option<Dialog>,
-    dialog_handler: DialogMessageHandler,
     should_quit: bool,
     redraw: bool,
     panel_handler: PanelMessageHandler,
@@ -82,12 +81,16 @@ impl ApplicationModel {
             area: Rect::default(),
             config,
             dialog: None,
-            dialog_handler: DialogMessageHandler::new(),
             should_quit: false,
             redraw: true,
             panel_handler: PanelMessageHandler::new(),
             panel_states: [PanelState::new(), PanelState::new()],
         }
+    }
+
+    /// Returns the area of the user interface
+    pub fn area(&self) -> Rect {
+        self.area
     }
 
     /// Returns a reference for the configuration object
@@ -333,6 +336,16 @@ impl ApplicationModel {
         )
     }
 
+    /// Returns a reference for the currently active panel' state
+    pub fn panel_states(&self) -> &PanelState {
+        &self.panel_states[self.active_panel]
+    }
+
+    /// Returns a mutable reference for the currently active panel' state
+    pub fn panel_states_mut(&mut self) -> &mut PanelState {
+        &mut self.panel_states[self.active_panel]
+    }
+
     fn select_file(&mut self, component: &UserInterfaces, idx: usize) -> ApplicationResult<()> {
         self.app.attr(
             component,
@@ -407,6 +420,18 @@ impl ApplicationModel {
         )
     }
 
+    pub fn show_dialog(
+        &mut self,
+        dialog: Box<dyn Component<ApplicationMessage, NoUserEvent>>,
+        area: Rect,
+    ) {
+        self.dialog = Some(Dialog { area });
+        self.app
+            .mount(UserInterfaces::Dialog, dialog, vec![])
+            .unwrap();
+        self.app.active(&UserInterfaces::Dialog).unwrap();
+    }
+
     fn sync_config(&mut self) {
         self.config.set_show_hidden_files(
             self.panel_states[LEFT_PANEL_IDX]
@@ -431,6 +456,11 @@ impl ApplicationModel {
         self.config
             .right_table_config_mut()
             .set_sort_direction(self.panel_states[RIGHT_PANEL_IDX].sort_direction().into());
+    }
+
+    /// Returns a reference for the tui-realm instance
+    pub fn tui_realm(&self) -> &TuiRealmApplication {
+        &self.app
     }
 }
 
@@ -570,37 +600,7 @@ impl Update<ApplicationMessage> for ApplicationModel {
                         Some(ApplicationMessage::None)
                     }
                     DialogMessage::ShowRmDialog => {
-                        let file_count =
-                            self.panel_states[self.active_panel].selected_files_count();
-
-                        if file_count == 0 {
-                            let error_dialog = Box::new(
-                                ErrorDialog::new()
-                                    .with_title("Error")
-                                    .with_message("There are no files selected!")
-                                    .with_button_title("   OK   "),
-                            );
-
-                            self.dialog = Some(Dialog {
-                                area: fixed_height_centered_rect(33, 5, self.area),
-                            });
-                            self.app
-                                .mount(UserInterfaces::Dialog, error_dialog, vec![])
-                                .unwrap();
-                            self.app.active(&UserInterfaces::Dialog).unwrap();
-                        } else {
-                            let rm_dialog =
-                                Box::new(RemoveConfirmationDialog::new().with_count(file_count));
-                            self.dialog = Some(Dialog {
-                                area: fixed_height_centered_rect(50, 5, self.area),
-                            });
-                            self.app
-                                .mount(UserInterfaces::Dialog, rm_dialog, vec![])
-                                .unwrap();
-                            self.app.active(&UserInterfaces::Dialog).unwrap();
-                        }
-
-                        Some(ApplicationMessage::None)
+                        handlers::dialog_handler::handle_msg(self, dialog_message)
                     }
                     DialogMessage::ShowSortDialog => {
                         let predicate = self.panel_states[self.active_panel].sort_predicate();
