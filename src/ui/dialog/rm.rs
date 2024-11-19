@@ -1,3 +1,5 @@
+use std::path::PathBuf;
+
 use crate::app::ApplicationMessage;
 use tuirealm::{
     command::{Cmd, CmdResult},
@@ -44,6 +46,7 @@ impl Default for RemoveConfirmationDialog {
         properties.set(Attribute::HighlightedColor, AttrValue::Color(Color::Black));
 
         RemoveConfirmationDialog {
+            file_list: Vec::new(),
             focused_button: Buttons::Cancel,
             properties,
         }
@@ -51,6 +54,7 @@ impl Default for RemoveConfirmationDialog {
 }
 
 pub struct RemoveConfirmationDialog {
+    file_list: Vec<PathBuf>,
     focused_button: Buttons,
     properties: Props,
 }
@@ -58,14 +62,14 @@ pub struct RemoveConfirmationDialog {
 impl RemoveConfirmationDialog {
     pub fn new() -> Self {
         RemoveConfirmationDialog {
+            file_list: Vec::new(),
             focused_button: Buttons::Cancel,
             properties: Props::default(),
         }
     }
 
-    pub fn with_count(mut self, file_count: usize) -> Self {
-        let value = AttrValue::Length(file_count);
-        self.attr(Attribute::Value, value);
+    pub fn with_files(mut self, files: Vec<PathBuf>) -> Self {
+        self.file_list = files;
         self
     }
 }
