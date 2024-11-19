@@ -1,7 +1,7 @@
 use crate::core::config::{Configuration, ConfigurationKey};
 use crate::core::list_dir::{DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate};
-use crate::handlers::{self, PanelMessageHandler};
+use crate::handlers::{self, dialog_handler, PanelMessageHandler};
 use crate::ui::{
     fixed_height_centered_rect, Dialog, DialogMessage, HelpDialog, MkDirDialog, PanelOpionsDialog,
     PanelState, SortingDialog, TablePanel, TransferConfirmationDialog, TransferProgressDialog,
@@ -93,6 +93,14 @@ impl ApplicationModel {
         self.area
     }
 
+    /// Closes the currently opened dialog
+    pub fn close_dialog(&mut self) {
+        if self.app.mounted(&UserInterfaces::Dialog) {
+            self.dialog = None;
+            self.app.umount(&UserInterfaces::Dialog).unwrap();
+        }
+    }
+
     /// Returns a reference for the configuration object
     pub fn get_config(&self) -> &Configuration {
         &self.config
@@ -100,7 +108,7 @@ impl ApplicationModel {
 
     /// Returns both panel's current working directories.
     /// Variant 0 will be the currently focused panel's working directory.
-    fn get_pwds(&self) -> (PathBuf, PathBuf) {
+    pub fn get_pwds(&self) -> (PathBuf, PathBuf) {
         match self.active_panel {
             LEFT_PANEL_IDX => (
                 self.panel_states[0].pwd().to_path_buf(),
@@ -462,6 +470,11 @@ impl ApplicationModel {
     pub fn tui_realm(&self) -> &TuiRealmApplication {
         &self.app
     }
+
+    /// Returns a mutable reference for the tui-realm instance
+    pub fn tui_realm_mut(&mut self) -> &mut TuiRealmApplication {
+        &mut self.app
+    }
 }
 
 impl Update<ApplicationMessage> for ApplicationModel {
@@ -541,148 +554,9 @@ impl Update<ApplicationMessage> for ApplicationModel {
 
                     Some(next_message)
                 }
-                ApplicationMessage::Dialog(dialog_message) => match dialog_message {
-                    DialogMessage::ShowHelpDialog => {
-                        let help_dialog = Box::new(HelpDialog::new());
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 14, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, help_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::ShowMoveDialog => {
-                        let (source, target) = self.get_pwds();
-                        let move_dialog = TransferConfirmationDialog::default()
-                            .source(source)
-                            .target(target)
-                            .keep_source(false)
-                            .title("Move");
-                        let move_dialog = Box::new(move_dialog);
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 8, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, move_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::ShowCopyDialog => {
-                        let (source, target) = self.get_pwds();
-                        let copy_dialog = TransferConfirmationDialog::default()
-                            .source(source)
-                            .target(target)
-                            .keep_source(true)
-                            .title("Copy");
-                        let copy_dialog = Box::new(copy_dialog);
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 8, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, copy_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::ShowMkDirDialog => {
-                        let dialog = MkDirDialog::new();
-                        let mkdir_dialog = Box::new(dialog);
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 9, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, mkdir_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::ShowRmDialog => {
-                        handlers::dialog_handler::handle_msg(self, dialog_message)
-                    }
-                    DialogMessage::ShowSortDialog => {
-                        let predicate = self.panel_states[self.active_panel].sort_predicate();
-                        let direction = self.panel_states[self.active_panel].sort_direction();
-                        let sort_dialog = Box::new(SortingDialog::new(predicate, direction));
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 9, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, sort_dialog, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::ShowFilterDialog => None,
-                    DialogMessage::ShowPanelOptionsDialog => {
-                        let panel_options_dialoge = Box::new(PanelOpionsDialog::new(&self.config));
-                        self.dialog = Some(Dialog {
-                            area: fixed_height_centered_rect(50, 9, self.area),
-                        });
-                        self.app
-                            .mount(UserInterfaces::Dialog, panel_options_dialoge, vec![])
-                            .unwrap();
-                        self.app.active(&UserInterfaces::Dialog).unwrap();
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::BeginTransfer(_delete_source) => {
-                        if self.app.mounted(&UserInterfaces::Dialog) {
-                            self.app.umount(&UserInterfaces::Dialog).unwrap();
-                            let (source, target) = self.get_pwds();
-                            let mut dialog = TransferProgressDialog::new()
-                                .source(source)
-                                .target(target)
-                                .title("Copying");
-                            dialog
-                                .attr(Attribute::Content, AttrValue::String(String::from("x.txt")));
-                            let progress_dialog = Box::new(dialog);
-                            self.dialog = Some(Dialog {
-                                area: fixed_height_centered_rect(50, 9, self.area),
-                            });
-                            self.app
-                                .mount(UserInterfaces::Dialog, progress_dialog, vec![])
-                                .unwrap();
-                            self.app.active(&UserInterfaces::Dialog).unwrap();
-                        }
-
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::RemoveSelectedFiles => Some(ApplicationMessage::None),
-                    DialogMessage::CreateDirectory(state) => {
-                        let mut current_dir =
-                            PathBuf::from(self.panel_states[self.active_panel].pwd());
-                        let new_dir_name = state.unwrap_one().unwrap_string();
-                        current_dir.push(new_dir_name);
-                        let path = current_dir.to_owned();
-
-                        match std::fs::create_dir(&path) {
-                            Ok(_) => {
-                                return Some(ApplicationMessage::Dialog(
-                                    DialogMessage::CloseDialog,
-                                ));
-                            }
-                            Err(error) => {
-                                // TODO: display error message
-                                eprintln!(
-                                    "error creating new directory at {} : {} ",
-                                    path.display(),
-                                    error
-                                );
-                            }
-                        }
-
-                        Some(ApplicationMessage::None)
-                    }
-                    DialogMessage::CloseDialog => {
-                        if self.app.mounted(&UserInterfaces::Dialog) {
-                            self.dialog = None;
-                            self.app.umount(&UserInterfaces::Dialog).unwrap();
-                        }
-                        Some(ApplicationMessage::None)
-                    }
-                },
+                ApplicationMessage::Dialog(dialog_message) => {
+                    dialog_handler::handle_msg(self, dialog_message)
+                }
                 ApplicationMessage::Panel(panel_msg) => match panel_msg {
                     PanelMessage::ChangeSortDirection(direction) => {
                         if let Some(component_id) = self.app.focus().cloned() {
