@@ -72,6 +72,38 @@ impl RemoveConfirmationDialog {
         self.file_list = files;
         self
     }
+
+    /// Decides the confirmation message to be displayed to the user based on the type
+    /// and the count of files marked to delete.
+    fn get_confirm_msg(&self) -> (String, String) {
+        let count = self.file_list.len();
+        if count == 1 {
+            if let Some(file) = self.file_list.get(0) {
+                let fname = file.file_name().unwrap().to_string_lossy();
+                if file.is_dir() {
+                    (
+                        String::from("Are you sure you want to delete and all of its content ?"),
+                        String::from(fname),
+                    )
+                } else {
+                    (
+                        String::from("Are you sure you want to delete this file ?"),
+                        String::from(fname),
+                    )
+                }
+            } else {
+                (
+                    String::from("Are you sure you want to delete this file?"),
+                    String::new(),
+                )
+            }
+        } else {
+            (
+                format!("Are you sure you want to delete {} items ?", count),
+                String::new(),
+            )
+        }
+    }
 }
 
 impl MockComponent for RemoveConfirmationDialog {
@@ -115,20 +147,7 @@ impl MockComponent for RemoveConfirmationDialog {
                 AttrValue::Title(("Confirm delete".to_string(), Alignment::Left)),
             )
             .unwrap_title();
-        let file_count = self
-            .properties
-            .get_or(Attribute::Value, AttrValue::Length(0))
-            .unwrap_length();
-        let text = self
-            .properties
-            .get_or(
-                Attribute::HighlightedStr,
-                AttrValue::String(format!(
-                    "Are you sure you want to delete {} item(s)?",
-                    file_count
-                )),
-            )
-            .unwrap_string();
+        let (msg, fname) = self.get_confirm_msg();
 
         let button_titles = {
             match self.focused_button {
@@ -149,9 +168,9 @@ impl MockComponent for RemoveConfirmationDialog {
             }
         };
         let spans = vec![
-            Line::from(vec![Span::styled(text, Style::default().fg(text_color))]),
+            Line::from(vec![Span::styled(msg, Style::default().fg(text_color))]),
             Line::from(vec![Span::styled(
-                "",
+                fname,
                 Style::default()
                     .fg(text_color)
                     .add_modifier(tuirealm::tui::prelude::Modifier::BOLD),
@@ -171,7 +190,7 @@ impl MockComponent for RemoveConfirmationDialog {
                     .borders(border.sides)
                     .style(Style::default().bg(background_color).fg(text_color)),
             )
-            .wrap(Wrap { trim: false })
+            .wrap(Wrap { trim: true })
             .alignment(Alignment::Center);
         frame.render_widget(p, area);
     }

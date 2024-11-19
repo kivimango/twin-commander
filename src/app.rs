@@ -872,22 +872,3 @@ fn active_panel_idx(panel: &UserInterfaces) -> Option<usize> {
         _ => None,
     }
 }
-
-/// Decides the confirmation message to be displayed to the user based on the type
-/// and the count of files marked to delete.
-fn _get_confirm_msg(files: &[&Path]) -> String {
-    let count = files.len();
-    if count == 1 {
-        if let Some(file) = files.get(0) {
-            if file.is_dir() {
-                String::from("Are you sure you want to delete this folder and all of its content ?")
-            } else {
-                String::from("Are you sure you want to delete this file ?")
-            }
-        } else {
-            String::from("Are you sure you want to delete this ?")
-        }
-    } else {
-        format!("Are you sure you want to delete {} items ?", count)
-    }
-}
