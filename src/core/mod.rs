@@ -1,6 +1,7 @@
 pub mod config;
 pub mod list_dir;
 pub mod sort;
+pub mod worker;
 
 pub fn calculate_progress_percentage(partial_bytes: u64, total_bytes: u64) -> u64 {
     if partial_bytes != 0 && total_bytes != 0 {
