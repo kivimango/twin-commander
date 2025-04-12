@@ -4,7 +4,7 @@ use std::io::Error;
 use std::path::Path;
 
 /// A structure representing one file with its metadata collected from listing files in a directory
-#[derive(Clone, Debug, PartialEq)]
+#[derive(Clone, Debug, PartialEq, PartialOrd)]
 pub struct DirContent {
     pub name: String,
     pub is_dir: bool,
@@ -67,7 +67,7 @@ impl From<DirEntry> for DirContent {
     }
 }
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct FilterOptions {
     pub show_hidden_files: bool,
 }
