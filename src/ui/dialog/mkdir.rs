@@ -1,4 +1,4 @@
-use crate::app::ApplicationMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 use tui_realm_stdlib::Input;
 use tuirealm::{
     command::{Cmd, CmdResult, Position},
@@ -9,7 +9,7 @@ use tuirealm::{
         text::{Line, Span},
         widgets::{Block, Paragraph},
     },
-    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, Props, State,
 };
 
 enum Buttons {
@@ -47,7 +47,7 @@ impl MkDirDialog {
     pub fn new() -> Self {
         MkDirDialog {
             button: Buttons::Ok,
-                component: Input::default()
+            component: Input::default()
                 .background(Color::Cyan)
                 .borders(
                     Borders::default()
@@ -64,8 +64,8 @@ impl MkDirDialog {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for MkDirDialog {
-    fn on(&mut self, event: tuirealm::Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for MkDirDialog {
+    fn on(&mut self, event: tuirealm::Event<WorkerEvent>) -> Option<ApplicationMessage> {
         let cmd = match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 return Some(ApplicationMessage::Dialog(

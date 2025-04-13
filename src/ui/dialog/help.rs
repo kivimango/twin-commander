@@ -1,5 +1,5 @@
 use super::DialogMessage;
-use crate::app::ApplicationMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 use tuirealm::{
     command::{Cmd, CmdResult},
     event::{Key, KeyEvent},
@@ -10,7 +10,7 @@ use tuirealm::{
         text::{Line, Span},
         widgets::{Block, Cell, Row},
     },
-    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, Props, State,
 };
 
 /// A simple dialog box to display key control/mapping information.
@@ -18,8 +18,8 @@ pub struct HelpDialog {
     properties: Props,
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for HelpDialog {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for HelpDialog {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))

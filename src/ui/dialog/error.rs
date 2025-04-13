@@ -1,5 +1,5 @@
 use super::DialogMessage;
-use crate::app::ApplicationMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 use tuirealm::{
     command::{Cmd, CmdResult},
     event::{Key, KeyEvent},
@@ -10,7 +10,7 @@ use tuirealm::{
         widgets::{block::Title, Block, Paragraph, Wrap},
         Frame,
     },
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, Props, State,
+    AttrValue, Attribute, Component, Event, MockComponent, Props, State,
 };
 
 const DEFAULT_BACKGROUND: Color = Color::Red;
@@ -113,8 +113,8 @@ impl MockComponent for ErrorDialog {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for ErrorDialog {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for ErrorDialog {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))

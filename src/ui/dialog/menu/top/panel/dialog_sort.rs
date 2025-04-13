@@ -5,6 +5,7 @@ use crate::{
         sort::{TableSortDirection, TableSortPredicate},
     },
     ui::DialogMessage,
+    worker_event::WorkerEvent,
 };
 use std::borrow::Cow;
 use tuirealm::{
@@ -16,7 +17,7 @@ use tuirealm::{
         text::{Line, Span, Text},
         widgets::{Block, List, ListItem, ListState, Paragraph},
     },
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, State,
+    AttrValue, Attribute, Component, Event, MockComponent, State,
 };
 
 const CHECK_MARK: &str = "X";
@@ -156,8 +157,8 @@ pub struct SortingDialog {
     direction_list: DirectionList,
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for SortingDialog {
-    fn on(&mut self, event: tuirealm::Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for SortingDialog {
+    fn on(&mut self, event: tuirealm::Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(key_event) => match key_event.code {
                 Key::Esc | Key::Function(10) => {

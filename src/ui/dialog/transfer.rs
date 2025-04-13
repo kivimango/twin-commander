@@ -10,12 +10,11 @@ use tuirealm::{
         text::{Line, Span, Text},
         widgets::{Block, Gauge, Paragraph, Wrap},
     },
-    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
-    StateValue,
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, Props, State, StateValue,
 };
 
 use super::DialogMessage;
-use crate::app::ApplicationMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 
 pub const TAG_SOURCE: &str = "source";
 pub const TAG_TARGET: &str = "target";
@@ -246,8 +245,8 @@ impl MockComponent for TransferConfirmationDialog {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for TransferConfirmationDialog {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for TransferConfirmationDialog {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. })
             | Event::Keyboard(KeyEvent {
@@ -520,8 +519,8 @@ impl MockComponent for TransferProgressDialog {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for TransferProgressDialog {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for TransferProgressDialog {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(KeyEvent { code: Key::Esc, .. }) => {
                 return Some(ApplicationMessage::Dialog(DialogMessage::CloseDialog))

@@ -1,4 +1,5 @@
-use crate::app::ApplicationMessage;
+use super::DialogMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 use std::borrow::Cow;
 use tuirealm::{
     command::{Cmd, CmdResult, Direction},
@@ -10,10 +11,8 @@ use tuirealm::{
         text::Span,
         widgets::{Block, Clear, StatefulWidget, Widget},
     },
-    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
-    StateValue,
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, Props, State, StateValue,
 };
-use super::DialogMessage;
 
 /// List of available messages that the top menu can produce to be handled by the model
 #[derive(Debug, PartialEq)]
@@ -92,8 +91,8 @@ impl TopMenu {
     }*/
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for TopMenu {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for TopMenu {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         let command = match event {
             Event::Keyboard(KeyEvent {
                 modifiers: KeyModifiers::NONE,
@@ -196,9 +195,7 @@ impl MockComponent for MenuComponent {
                 }
                 CmdResult::Changed(State::None)
             }
-            Cmd::Change => {
-                CmdResult::Submit(State::None)
-            }
+            Cmd::Change => CmdResult::Submit(State::None),
             Cmd::None => CmdResult::None,
             _ => CmdResult::None,
         }
@@ -376,7 +373,7 @@ impl MenuState {
                 vec![MenuItem {
                     title: "Panel options".into(),
                     highlighted: false,
-                    target: DialogMessage::ShowPanelOptionsDialog
+                    target: DialogMessage::ShowPanelOptionsDialog,
                 }],
             ),
             SubMenu::new(
@@ -385,12 +382,12 @@ impl MenuState {
                     MenuItem {
                         title: "Sort order".into(),
                         highlighted: false,
-                        target: DialogMessage::ShowSortDialog
+                        target: DialogMessage::ShowSortDialog,
                     },
                     MenuItem {
                         title: "Filter".into(),
                         highlighted: false,
-                        target: DialogMessage::ShowFilterDialog
+                        target: DialogMessage::ShowFilterDialog,
                     },
                 ],
             ),
@@ -446,7 +443,7 @@ impl SubMenu {
 struct MenuItem {
     title: Cow<'static, str>,
     highlighted: bool,
-    target: DialogMessage
+    target: DialogMessage,
 }
 
 // An inbetween type for implementing a custom render method: in the view method,

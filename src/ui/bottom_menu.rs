@@ -1,4 +1,4 @@
-use crate::app::ApplicationMessage;
+use crate::{app::ApplicationMessage, worker_event::WorkerEvent};
 use tuirealm::{
     command::{Cmd, CmdResult},
     props::{Color, Style},
@@ -7,7 +7,7 @@ use tuirealm::{
         text::{Line, Span},
         widgets::Tabs,
     },
-    AttrValue, Attribute, Component, Event, Frame, MockComponent, NoUserEvent, Props, State,
+    AttrValue, Attribute, Component, Event, Frame, MockComponent, Props, State,
 };
 
 pub struct BottomMenu {
@@ -111,8 +111,8 @@ impl MockComponent for BottomMenu {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for BottomMenu {
-    fn on(&mut self, _event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for BottomMenu {
+    fn on(&mut self, _event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         None
     }
 }

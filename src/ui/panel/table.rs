@@ -3,6 +3,7 @@ use std::collections::HashSet;
 use crate::{
     app::ApplicationMessage,
     ui::{DialogMessage, PanelMessage, TableSortDirection, TableSortPredicate, TopMenuMessage},
+    worker_event::WorkerEvent,
 };
 use tuirealm::{
     command::{Cmd, CmdResult, Direction, Position},
@@ -17,7 +18,7 @@ use tuirealm::{
             Table, TableState,
         },
     },
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, Props, State, StateValue,
+    AttrValue, Attribute, Component, Event, MockComponent, Props, State, StateValue,
 };
 use tuirealm::{props::TextModifiers, tui::style::Style};
 
@@ -82,7 +83,7 @@ impl Default for TablePanel {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
+impl Component<ApplicationMessage, WorkerEvent> for TablePanel {
     /// Key event handler: turns key presses into commands
     /// that the widget will process further.
     ///
@@ -106,7 +107,7 @@ impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
     /// - `Ctrl+u Key`: Changes sort direction to ascending
     /// - `Ctrl+d Key`: Changes sort direction to descending
     /// - `Insert Key`: Marks the file at the cursor as selected, and advances the cursor by one row
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         let cmd = match event {
             // Bottom menu
             Event::Keyboard(KeyEvent {
@@ -204,6 +205,14 @@ impl Component<ApplicationMessage, NoUserEvent> for TablePanel {
             Event::Keyboard(KeyEvent {
                 code: Key::Insert, ..
             }) => return Some(ApplicationMessage::Panel(PanelMessage::SelectItem)),
+            Event::User(worker_event) => match worker_event {
+                WorkerEvent::ListDirectoryResult(list_result) => {
+                    match list_result {
+                        Ok(files) => Cmd::None,
+                        Err(_error) => Cmd::None, // show error message
+                    }
+                }
+            },
             _ => Cmd::None,
         };
 
@@ -286,13 +295,15 @@ impl MockComponent for TablePanel {
             Cmd::Move(Direction::Down) => {
                 if let Some(selected_idx) = self.state.selected() {
                     // TODO: could panic if self.count == 0
-                    if selected_idx == self.count - 1 || self.count == 0 {
+                    if self.count == 0 || selected_idx >= self.count - 1 {
                         return CmdResult::None;
                     }
+                    if let Some(new_idx) = selected_idx.checked_add(1) {
+                        self.state.select(Some(new_idx));
+                        self.srcoll_state.scroll(ScrollDirection::Forward);
+                        return CmdResult::Changed(self.state());
+                    }
                     // TODO: could panic if selected_idx == Usize:MAX
-                    self.state.select(Some(selected_idx + 1));
-                    self.srcoll_state.scroll(ScrollDirection::Forward);
-                    return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
             }
@@ -301,10 +312,11 @@ impl MockComponent for TablePanel {
                     if selected_idx == 0 || self.count == 0 {
                         return CmdResult::None;
                     }
-                    // TODO: could panic if selected_idx == 0
-                    self.state.select(Some(selected_idx - 1));
-                    self.srcoll_state.scroll(ScrollDirection::Backward);
-                    return CmdResult::Changed(self.state());
+                    if let Some(new_idx) = selected_idx.checked_sub(1) {
+                        self.state.select(Some(new_idx));
+                        self.srcoll_state.scroll(ScrollDirection::Backward);
+                        return CmdResult::Changed(self.state());
+                    }
                 }
                 CmdResult::None
             }
@@ -372,11 +384,11 @@ impl MockComponent for TablePanel {
 
         // TODO: probably would be more efficient to store the file list as a Payload with referencing instead of cloning a table which is a 2D String vector
         //let files = self.properties.get_or(Attribute::Content, AttrValue::Payload(PropPayload::Vec(Vec::new()))).unwrap_payload().unwrap_vec();
-        let files = self
-            .properties
-            .get(Attribute::Content)
-            .unwrap()
-            .unwrap_table();
+        /*let files = self
+        .properties
+        .get(Attribute::Content)
+        .unwrap()
+        .unwrap_table();*/
         let focused = self
             .properties
             .get_or(Attribute::Focus, AttrValue::Flag(false))
@@ -405,7 +417,8 @@ impl MockComponent for TablePanel {
             .collect();
         let headers = Row::new(header_titles);
 
-        let rows: Vec<Row> = files
+        let rows: Vec<Row> = self
+            .files
             .iter()
             .enumerate()
             .map(|(i, f)| {
@@ -417,9 +430,9 @@ impl MockComponent for TablePanel {
                     Style::default().fg(text_color)
                 };
                 Row::new([
-                    Cell::from(f[0].content.clone()),
-                    Cell::from(f[1].content.clone()),
-                    Cell::from(f[2].content.clone()),
+                    Cell::from(f.name.clone()),
+                    Cell::from(f.name.clone()),
+                    Cell::from(f.date.clone()),
                 ])
                 .style(style)
             })

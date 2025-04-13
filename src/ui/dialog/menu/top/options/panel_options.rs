@@ -2,6 +2,7 @@ use crate::{
     app::ApplicationMessage,
     core::config::{Configuration, ConfigurationKey},
     ui::DialogMessage,
+    worker_event::WorkerEvent,
 };
 use tuirealm::{
     command::{Cmd, CmdResult},
@@ -14,7 +15,7 @@ use tuirealm::{
         widgets::{Block, List, ListItem, ListState, Paragraph},
         Frame,
     },
-    AttrValue, Attribute, Component, Event, MockComponent, NoUserEvent, State,
+    AttrValue, Attribute, Component, Event, MockComponent, State,
 };
 
 const CHECK_MARK: &str = "X";
@@ -151,8 +152,8 @@ impl PanelOpionsDialog {
     }
 }
 
-impl Component<ApplicationMessage, NoUserEvent> for PanelOpionsDialog {
-    fn on(&mut self, event: Event<NoUserEvent>) -> Option<ApplicationMessage> {
+impl Component<ApplicationMessage, WorkerEvent> for PanelOpionsDialog {
+    fn on(&mut self, event: Event<WorkerEvent>) -> Option<ApplicationMessage> {
         match event {
             Event::Keyboard(key_event) => match key_event.code {
                 Key::Esc | Key::Function(10) => {
