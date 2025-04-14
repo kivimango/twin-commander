@@ -1,5 +1,7 @@
 use std::collections::HashSet;
 
+use super::{panel_item::PanelItem, panel_state::PanelState};
+use crate::core::list_dir::FilterOptions;
 use crate::{
     app::ApplicationMessage,
     ui::{DialogMessage, PanelMessage, TableSortDirection, TableSortPredicate, TopMenuMessage},
@@ -37,14 +39,14 @@ const DEFAULT_FOCUS_STYLE: Style = Style {
 /// Represents a panel used to display the contents of a directory (files) in a table format.
 /// It keeps track of the count of items in the table, along with its properties and state between draw calls.
 pub struct TablePanel {
-    /// The count of files in the directory.
-    count: usize,
-
     /// Additional properties and settings for the table panel.
     properties: Props,
 
     /// The state keeps track of the cursor position and an offset from 0.
-    state: TableState,
+    table_state: TableState,
+
+    // The other state of the panel preserved between two draw() calls
+    state: PanelState,
 
     /// List of selected items
     selection: HashSet<usize>,
@@ -71,11 +73,12 @@ impl Default for TablePanel {
             AttrValue::Style(Style::default().bg(Color::Cyan).fg(Color::Black)),
         );
 
-        let state = TableState::default().with_selected(Some(0));
+        let table_state = TableState::default().with_selected(Some(0));
+        let state = PanelState::default();
 
         TablePanel {
-            count: 0,
             properties,
+            table_state,
             state,
             selection: HashSet::new(),
             srcoll_state: ScrollbarState::default(),
@@ -267,12 +270,12 @@ impl MockComponent for TablePanel {
             // unwrapping the table attribute to query the row count in order to update it
             let table = value.unwrap_table();
             let row_count = table.len();
-            self.count = row_count;
+            //self.count = row_count;
             self.srcoll_state = ScrollbarState::new(row_count);
             self.properties.set(attr, AttrValue::Table(table));
         } else if matches!(attr, Attribute::Value) {
             let selected_idx = value.clone().unwrap_payload().unwrap_one().unwrap_usize();
-            self.state.select(Some(selected_idx));
+            self.table_state.select(Some(selected_idx));
             self.properties.set(attr, value);
         } else if matches!(attr, Attribute::Custom(SELECT_ITEM)) {
             let selected_idx = value.unwrap_payload().unwrap_one().unwrap_usize();
@@ -291,15 +294,17 @@ impl MockComponent for TablePanel {
     }
 
     fn perform(&mut self, cmd: Cmd) -> CmdResult {
+        let count = self.state.count();
+
         match cmd {
             Cmd::Move(Direction::Down) => {
-                if let Some(selected_idx) = self.state.selected() {
-                    // TODO: could panic if self.count == 0
-                    if self.count == 0 || selected_idx >= self.count - 1 {
+                if let Some(selected_idx) = self.table_state.selected() {
+                    // TODO: could panic if count == 0
+                    if count == 0 || selected_idx >= count - 1 {
                         return CmdResult::None;
                     }
                     if let Some(new_idx) = selected_idx.checked_add(1) {
-                        self.state.select(Some(new_idx));
+                        self.table_state.select(Some(new_idx));
                         self.srcoll_state.scroll(ScrollDirection::Forward);
                         return CmdResult::Changed(self.state());
                     }
@@ -308,12 +313,12 @@ impl MockComponent for TablePanel {
                 CmdResult::None
             }
             Cmd::Move(Direction::Up) => {
-                if let Some(selected_idx) = self.state.selected() {
-                    if selected_idx == 0 || self.count == 0 {
+                if let Some(selected_idx) = self.table_state.selected() {
+                    if selected_idx == 0 || self.state.count() == 0 {
                         return CmdResult::None;
                     }
                     if let Some(new_idx) = selected_idx.checked_sub(1) {
-                        self.state.select(Some(new_idx));
+                        self.table_state.select(Some(new_idx));
                         self.srcoll_state.scroll(ScrollDirection::Backward);
                         return CmdResult::Changed(self.state());
                     }
@@ -321,16 +326,16 @@ impl MockComponent for TablePanel {
                 CmdResult::None
             }
             Cmd::GoTo(Position::Begin) => {
-                if self.count != 0 {
-                    self.state.select(Some(0));
+                if count != 0 {
+                    self.table_state.select(Some(0));
                     self.srcoll_state.first();
                     return CmdResult::Changed(self.state());
                 }
                 CmdResult::None
             }
             Cmd::GoTo(Position::End) => {
-                if self.count != 0 {
-                    self.state.select(Some(self.count - 1));
+                if count != 0 {
+                    self.table_state.select(Some(count - 1));
                     self.srcoll_state.last();
                     return CmdResult::Changed(self.state());
                 }
@@ -345,7 +350,7 @@ impl MockComponent for TablePanel {
     }
 
     fn state(&self) -> State {
-        if let Some(selected_idx) = self.state.selected() {
+        if let Some(selected_idx) = self.table_state.selected() {
             State::One(StateValue::Usize(selected_idx))
         } else {
             State::None
@@ -384,11 +389,11 @@ impl MockComponent for TablePanel {
 
         // TODO: probably would be more efficient to store the file list as a Payload with referencing instead of cloning a table which is a 2D String vector
         //let files = self.properties.get_or(Attribute::Content, AttrValue::Payload(PropPayload::Vec(Vec::new()))).unwrap_payload().unwrap_vec();
-        /*let files = self
-        .properties
-        .get(Attribute::Content)
-        .unwrap()
-        .unwrap_table();*/
+        let files = self
+            .properties
+            .get(Attribute::Content)
+            .unwrap()
+            .unwrap_table();
         let focused = self
             .properties
             .get_or(Attribute::Focus, AttrValue::Flag(false))
@@ -417,8 +422,7 @@ impl MockComponent for TablePanel {
             .collect();
         let headers = Row::new(header_titles);
 
-        let rows: Vec<Row> = self
-            .files
+        let rows: Vec<Row> = files
             .iter()
             .enumerate()
             .map(|(i, f)| {
@@ -430,9 +434,9 @@ impl MockComponent for TablePanel {
                     Style::default().fg(text_color)
                 };
                 Row::new([
-                    Cell::from(f.name.clone()),
-                    Cell::from(f.name.clone()),
-                    Cell::from(f.date.clone()),
+                    Cell::from(f[0].content.clone()),
+                    Cell::from(f[1].content.clone()),
+                    Cell::from(f[2].content.clone()),
                 ])
                 .style(style)
             })
@@ -458,10 +462,10 @@ impl MockComponent for TablePanel {
                 Constraint::Length(17),
             ]);
 
-        frame.render_stateful_widget(table, area, &mut self.state);
+        frame.render_stateful_widget(table, area, &mut self.table_state);
 
         let table_height = area.height - 2;
-        if self.count > table_height.into() {
+        if self.state.count() > table_height.into() {
             let scroll_bar =
                 Scrollbar::new(ScrollbarOrientation::VerticalRight).symbols(scrollbar::VERTICAL);
             let scroll_bar_area = area.inner(&Margin {
