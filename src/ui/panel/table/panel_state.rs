@@ -1,3 +1,4 @@
+use super::panel_item::PanelItem;
 use crate::core::list_dir::{list_dir, DirContent, FilterOptions};
 use crate::core::sort::{TableSortDirection, TableSortPredicate, TableSorter};
 use std::collections::HashSet;
@@ -34,7 +35,7 @@ pub struct PanelState {
     cwd: PathBuf,
 
     /// List of files in the `self.cwd` directory
-    files: Vec<DirContent>,
+    files: Vec<PanelItem>,
 
     /// Filters used to customize the file listing operation
     filters: FilterOptions,
@@ -75,7 +76,8 @@ impl PanelState {
     /// - `ChangeDirectoryError::NotADirectory`: If the selected file is not a directory.
     /// - `ChangeDirectoryError::Other`: For other miscellaneous errors during the directory change operation.
     pub fn cd(&mut self, index: usize) -> Result<(), ChangeDirectoryError> {
-        if index == 0 {
+        Ok(())
+        /*if index == 0 {
             if let Some(parent) = self.cwd.parent() {
                 match self.list_files(parent) {
                     Ok(mut files) => {
@@ -113,11 +115,11 @@ impl PanelState {
             Err(ChangeDirectoryError::Other(String::from(
                 "no file for index",
             )))
-        }
+        }*/
     }
 
-    /// Returns a reference to the list of files found by `self.list_files()`.
-    pub fn files(&self) -> &[DirContent] {
+    /// Returns a reference to the current list of files.
+    pub fn files(&self) -> &[PanelItem] {
         &self.files
     }
 
@@ -127,7 +129,7 @@ impl PanelState {
     }
 
     /// Retrieves the file or directory at the specified index, if it exists.
-    pub fn get_file(&self, index: usize) -> Option<&DirContent> {
+    pub fn get_file(&self, index: usize) -> Option<&PanelItem> {
         self.files.get(index)
     }
 
@@ -154,13 +156,14 @@ impl PanelState {
     /// with `self.list_files()` and after list sorted with `self.sorter.sort()`.
     fn push_parent_front(&mut self) {
         if let Some(_parent) = self.cwd.parent() {
-            let parent = DirContent {
+            /*let parent = DirContent {
                 name: String::from(".."),
                 size: None,
                 is_dir: true,
                 date: String::from("<Parent>"),
                 attrs: String::new(),
-            };
+            };*/
+            let parent = PanelItem::parent();
             self.files.insert(0, parent);
         }
     }
@@ -211,7 +214,7 @@ impl PanelState {
     }
 
     /// Sets the files to be shown in the ui in the panel and sorts them.
-    pub fn set_files(&mut self, files: Vec<DirContent>) {
+    pub fn set_files(&mut self, files: Vec<PanelItem>) {
         self.files = files;
         self.sort();
         self.push_parent_front();
@@ -230,7 +233,8 @@ impl PanelState {
 
     /// Sort `self.files` by the current sorting predicate and direction skipping the first elementh.
     pub fn sort(&mut self) {
-        self.sorter.sort(&mut self.files[0..])
+        // TODO: fix sorting
+        //self.sorter.sort(&mut self.files[0..])
     }
 
     /// Returns the current sorting direction.
