@@ -1,3 +1,1 @@
-pub mod table;
-
-pub use self::table::*;
+pub(crate) mod table;
