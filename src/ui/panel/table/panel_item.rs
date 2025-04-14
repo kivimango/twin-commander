@@ -32,7 +32,7 @@ impl PanelItem {
     }
 
     /// Returns an instance with data pre-filled for displaying the parent directory item.
-    fn parent() -> Self {
+    pub(crate) fn parent() -> Self {
         PanelItem {
             name: String::from(".."),
             ftype: FileType::Parent,
@@ -44,7 +44,7 @@ impl PanelItem {
     }
 }
 
-struct PanelItemBuilder {
+pub(crate) struct PanelItemBuilder {
     name: String,
     ftype: FileType,
     size: String,
@@ -54,7 +54,7 @@ struct PanelItemBuilder {
 }
 
 impl PanelItemBuilder {
-    fn new() -> Self {
+    pub(crate) fn new() -> Self {
         PanelItemBuilder {
             name: String::new(),
             ftype: FileType::RegularFile,
@@ -65,17 +65,17 @@ impl PanelItemBuilder {
         }
     }
 
-    fn name<S: AsRef<str>>(mut self, name: S) -> Self {
+    pub(crate) fn name<S: AsRef<str>>(mut self, name: S) -> Self {
         self.name = name.as_ref().to_owned();
         self
     }
 
-    fn file_type(mut self, file_type: FileType) -> Self {
+    pub(crate) fn file_type(mut self, file_type: FileType) -> Self {
         self.ftype = file_type;
         self
     }
 
-    fn size(mut self, size: Option<u64>) -> Self {
+    pub(crate) fn size(mut self, size: Option<u64>) -> Self {
         match size {
             Some(fsize) => self.size = format!("{}", SizeFormatter::new(fsize, DECIMAL)),
             // TODO: log error
@@ -84,7 +84,7 @@ impl PanelItemBuilder {
         self
     }
 
-    fn last_modified(mut self, last_modified: Option<SystemTime>) -> Self {
+    pub(crate) fn last_modified(mut self, last_modified: Option<SystemTime>) -> Self {
         self.last_modified = match last_modified {
             Some(modified) => {
                 let datetime_local: DateTime<Local> = modified.into();
@@ -97,7 +97,7 @@ impl PanelItemBuilder {
         self
     }
 
-    fn attributes(mut self, attributes: Option<Permissions>) -> Self {
+    pub(crate) fn attributes(mut self, attributes: Option<Permissions>) -> Self {
         self.attributes = match attributes {
             Some(_attrs) => String::from(""),
             None => String::from(NOT_AVAILABLE),
@@ -105,12 +105,12 @@ impl PanelItemBuilder {
         self
     }
 
-    fn selected(mut self, selected: bool) -> Self {
+    pub(crate) fn selected(mut self, selected: bool) -> Self {
         self.selected = selected;
         self
     }
 
-    fn build(self) -> PanelItem {
+    pub(crate) fn build(self) -> PanelItem {
         PanelItem {
             name: self.name,
             ftype: self.ftype,
