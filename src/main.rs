@@ -7,6 +7,7 @@ mod app;
 mod core;
 mod handlers;
 mod ui;
+mod worker_event;
 
 fn main() -> Result<(), Box<dyn Error>> {
     // Initializing terminal with termion terminal backend and ratatui renderer
