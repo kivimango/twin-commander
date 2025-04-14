@@ -8,10 +8,6 @@ mod bottom_menu;
 mod dialog;
 mod menu;
 mod panel;
-mod panel_state;
-mod table;
-//mod user_interface;
-//mod widgets;
 
 use crate::core::sort::TableSortDirection;
 use crate::core::sort::TableSortPredicate;
@@ -20,9 +16,6 @@ pub use self::bottom_menu::*;
 pub use self::dialog::*;
 pub use self::menu::*;
 pub use self::panel::table::*;
-pub use self::panel_state::*;
-//pub use self::user_interface::UserInterface;
-//pub use self::widgets::*;
 
 #[derive(Debug, PartialEq)]
 pub enum PanelMessage {
