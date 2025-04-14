@@ -118,6 +118,11 @@ impl PanelState {
         }*/
     }
 
+    /// Returns the current count of files in `self.cwd`
+    pub fn count(&self) -> usize {
+        self.files.len()
+    }
+
     /// Returns a reference to the current list of files.
     pub fn files(&self) -> &[PanelItem] {
         &self.files
